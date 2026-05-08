@@ -6,7 +6,6 @@ All tests run without R2 access — pure function tests on in-memory DataFrames.
 from __future__ import annotations
 
 import polars as pl
-import pytest
 
 from pipelines.bca.aggregate import (
     RULE_TO_COLUMN,
