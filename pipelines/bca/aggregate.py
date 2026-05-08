@@ -213,9 +213,9 @@ def aggregate(df: pl.DataFrame) -> pl.DataFrame:
         pl.col("site_id").alias("outlet_id"),
         pl.col("site_id").map_elements(derive_operator_id, return_dtype=pl.Utf8).alias("operator_id"),
         pl.col("alert_count").cast(pl.Int32),
-        pl.col("eui_kwh_m2").cast(pl.Float64).fill_null(_METRIC_DEFAULT).round(2),
-        pl.col("chiller_cop").cast(pl.Float64).fill_null(_METRIC_DEFAULT).round(3),
-        pl.col("lpd_w_m2").cast(pl.Float64).fill_null(_METRIC_DEFAULT).round(2),
+        pl.col("eui_kwh_m2").cast(pl.Float64).fill_null(_METRIC_DEFAULT).round(1),   # e.g. 115.2
+        pl.col("chiller_cop").cast(pl.Float64).fill_null(_METRIC_DEFAULT).round(2),  # e.g. 0.68
+        pl.col("lpd_w_m2").cast(pl.Float64).fill_null(_METRIC_DEFAULT).round(1),    # e.g. 15.2
     ]).with_columns(
         pl.col("alert_count").map_elements(compute_score, return_dtype=pl.Float64).round(1).alias("score"),
     ).select([
