@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>io.indago.bca-aggregate</string>
+
+  <key>ProgramArguments</key>
+  <array>
+    <string>REPLACE_WITH_UV_BIN</string>
+    <string>run</string>
+    <string>--project</string>
+    <string>REPLACE_WITH_PROJECT_DIR</string>
+    <string>python</string>
+    <string>REPLACE_WITH_PROJECT_DIR/scripts/aggregate_bca.py</string>
+    <string>--days</string>
+    <string>90</string>
+  </array>
+
+  <key>WorkingDirectory</key>
+  <string>REPLACE_WITH_PROJECT_DIR</string>
+
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>CLARUS_ANALYTICS_URL</key>
+    <string>REPLACE_WITH_CLARUS_ANALYTICS_URL</string>
+    <key>HOME</key>
+    <string>REPLACE_WITH_HOME</string>
+    <key>PATH</key>
+    <string>/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:REPLACE_WITH_HOME/.local/bin:REPLACE_WITH_HOME/.cargo/bin</string>
+    <key>PYTHONUNBUFFERED</key>
+    <string>1</string>
+  </dict>
+
+  <!-- Run daily at 02:00 -->
+  <key>StartCalendarInterval</key>
+  <dict>
+    <key>Hour</key>
+    <integer>2</integer>
+    <key>Minute</key>
+    <integer>0</integer>
+  </dict>
+
+  <key>RunAtLoad</key>
+  <true/>
+
+  <key>StandardOutPath</key>
+  <string>REPLACE_WITH_HOME/.indago/logs/bca-aggregate.log</string>
+  <key>StandardErrorPath</key>
+  <string>REPLACE_WITH_HOME/.indago/logs/bca-aggregate.err</string>
+</dict>
+</plist>

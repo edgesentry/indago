@@ -26,6 +26,7 @@ AISSTREAM_API_KEY="${AISSTREAM_API_KEY:-}"
 AWS_ACCESS_KEY_ID="${AWS_ACCESS_KEY_ID:-}"
 AWS_SECRET_ACCESS_KEY="${AWS_SECRET_ACCESS_KEY:-}"
 S3_BUCKET="${S3_BUCKET:-indago-public}"
+CLARUS_ANALYTICS_URL="${CLARUS_ANALYTICS_URL:-https://clarus.edgesentry.io}"
 
 # ---------------------------------------------------------------------------
 # Parse arguments
@@ -64,6 +65,7 @@ install_agent() {
     -e "s|REPLACE_WITH_AWS_ACCESS_KEY_ID|${AWS_ACCESS_KEY_ID}|g" \
     -e "s|REPLACE_WITH_AWS_SECRET_ACCESS_KEY|${AWS_SECRET_ACCESS_KEY}|g" \
     -e "s|REPLACE_WITH_S3_BUCKET|${S3_BUCKET}|g" \
+    -e "s|REPLACE_WITH_CLARUS_ANALYTICS_URL|${CLARUS_ANALYTICS_URL}|g" \
     -e "s|REPLACE_WITH_PROJECT_DIR|$REPO_DIR|g" \
     -e "s|REPLACE_WITH_UV_BIN|$UV_BIN|g" \
     -e "s|REPLACE_WITH_HOME|$HOME|g" \
@@ -93,6 +95,8 @@ if [[ $UNLOAD -eq 0 ]] && [[ -z "$AWS_ACCESS_KEY_ID" ]]; then
 else
   install_agent "io.indago.r2sync"
 fi
+
+install_agent "io.indago.bca-aggregate"
 
 echo ""
 echo "Done."
