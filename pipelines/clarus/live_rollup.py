@@ -36,9 +36,16 @@ _CLARUS_ANALYTICS_URL = os.getenv(
 
 # ── Fetch helpers (same pattern as bca/aggregate.py) ──────────────────────────
 
-def _fetch_live_index() -> dict:
+def _fetch_live_index(days: int) -> dict:
+    """Fetch live-index keys with server-side time filter baked in.
+
+    Passing ?days=N tells live-index.js to exclude keys whose filename
+    timestamp is older than N days — so we never even list stale files.
+    Pass days=0 for all history.
+    """
     import httpx
-    url = f"{_CLARUS_ANALYTICS_URL}/api/live-index?all=1"
+    params = f"all=1&days={days}" if days <= 0 else f"days={days}"
+    url = f"{_CLARUS_ANALYTICS_URL}/api/live-index?{params}"
     logger.debug("GET %s", url)
     resp = httpx.get(url, timeout=30)
     resp.raise_for_status()
@@ -129,8 +136,8 @@ def run(dry_run: bool = False, days: int = 90) -> dict[str, int]:
     Returns:
         dict mapping "{site_id}/{table}" → row count written.
     """
-    logger.info("Fetching live index from %s…", _CLARUS_ANALYTICS_URL)
-    index = _fetch_live_index()
+    logger.info("Fetching live index from %s (days=%d)…", _CLARUS_ANALYTICS_URL, days)
+    index = _fetch_live_index(days)
 
     hb_by_site    = _load_keys_by_site(index.get("heartbeats", []))
     alert_by_site = _load_keys_by_site(index.get("alerts", []))
