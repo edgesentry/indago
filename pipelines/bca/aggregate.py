@@ -40,8 +40,6 @@ RULE_TO_COLUMN: dict[str, str] = {
 # Default value when a metric has no data yet
 _METRIC_DEFAULT = 0.0
 
-_CF_ENDPOINT = "https://b8a0b09feb89390fb6e8cf4ef9294f48.r2.cloudflarestorage.com"
-
 # Clarus analytics app URL — exposes /api/live-index (key listing) and
 # /data/raw/{key} (Parquet download) without requiring R2 credentials.
 # Override with CLARUS_ANALYTICS_URL env var once main branch is redeployed.
