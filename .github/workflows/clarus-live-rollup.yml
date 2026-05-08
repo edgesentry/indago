@@ -1,0 +1,60 @@
+name: clarus live rollup
+
+# Merges all raw clarus Parquet files into per-site rollup files so
+# /admin/live loads 1 file per table instead of N.
+#
+# Triggers:
+#   - Hourly schedule
+#   - Manual dispatch
+
+on:
+  schedule:
+    - cron: "0 * * * *"   # every hour
+  workflow_dispatch:
+    inputs:
+      days:
+        description: "Retention window in days (0 = all history)"
+        default: "90"
+        required: false
+      dry_run:
+        description: "Dry run — skip R2 write"
+        type: boolean
+        default: false
+
+permissions: {}
+
+concurrency:
+  group: clarus-live-rollup
+  cancel-in-progress: true
+
+jobs:
+  rollup:
+    name: Merge raw Parquet → rollup files
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b  # v8.1.0
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: uv sync --all-extras
+
+      - name: Run rollup
+        env:
+          USE_S3: "1"
+          AWS_ACCESS_KEY_ID:     ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          CLARUS_ANALYTICS_URL:  ${{ vars.CLARUS_ANALYTICS_URL || 'https://clarus.edgesentry.io' }}
+        run: |
+          ARGS="--days ${{ github.event.inputs.days || '90' }}"
+          if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then
+            ARGS="$ARGS --dry-run"
+          fi
+          uv run python scripts/rollup_clarus_live.py $ARGS
