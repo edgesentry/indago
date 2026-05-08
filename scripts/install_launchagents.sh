@@ -97,6 +97,7 @@ else
 fi
 
 install_agent "io.indago.bca-aggregate"
+install_agent "io.indago.clarus-live-rollup"
 
 echo ""
 echo "Done."
