@@ -58,7 +58,14 @@ def _fetch_parquet(key: str) -> pl.DataFrame | None:
         return None
 
 
+def _write_parquet_s3(df: pl.DataFrame, bucket: str, key: str) -> None:
+    """Write via boto3 S3 API — used in CI (USE_S3=1)."""
+    from pipelines.storage.config import polars_storage_options
+    df.write_parquet(f"s3://{bucket}/{key}", storage_options=polars_storage_options())
+
+
 def _wrangler_put(bucket: str, key: str, src: str) -> None:
+    """Write via wrangler subprocess — used in local dev."""
     import subprocess
     result = subprocess.run(
         ["wrangler", "r2", "object", "put", f"{bucket}/{key}",
@@ -96,15 +103,22 @@ def merge_table(keys: list[str], days: int) -> pl.DataFrame:
 
 
 def write_rollup(df: pl.DataFrame, bucket: str, key: str) -> None:
-    import tempfile
-    with tempfile.NamedTemporaryFile(suffix=".parquet", delete=False) as f:
-        tmp = f.name
-    try:
-        df.write_parquet(tmp)
-        _wrangler_put(bucket, key, tmp)
-        logger.info("Wrote %d rows → %s/%s", len(df), bucket, key)
-    finally:
-        os.unlink(tmp)
+    """Write rollup Parquet to R2.
+
+    Uses boto3 S3 API when USE_S3=1 (CI), wrangler subprocess otherwise (local dev).
+    """
+    if os.getenv("USE_S3", "0").lower() in ("1", "true", "yes"):
+        _write_parquet_s3(df, bucket, key)
+    else:
+        import tempfile
+        with tempfile.NamedTemporaryFile(suffix=".parquet", delete=False) as f:
+            tmp = f.name
+        try:
+            df.write_parquet(tmp)
+            _wrangler_put(bucket, key, tmp)
+        finally:
+            os.unlink(tmp)
+    logger.info("Wrote %d rows → %s/%s", len(df), bucket, key)
 
 
 # ── Entry point ────────────────────────────────────────────────────────────────
