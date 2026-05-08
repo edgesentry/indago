@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import logging
 import os
+import time
 from typing import TYPE_CHECKING
 
 import polars as pl
@@ -123,6 +124,14 @@ def derive_operator_id(site_id: str) -> str:
 def compute_score(alert_count: int) -> float:
     """Compliance score 0–100. Each alert costs 5 points, minimum 0."""
     return max(0.0, 100.0 - alert_count * 5.0)
+
+
+def filter_window(df: pl.DataFrame, days: int) -> pl.DataFrame:
+    """Retain only rows within the past `days` days."""
+    if df.is_empty() or days <= 0:
+        return df
+    cutoff_ms = int((time.time() - days * 86_400) * 1_000)
+    return df.filter(pl.col("timestamp_ms") >= cutoff_ms)
 
 
 def aggregate(df: pl.DataFrame) -> pl.DataFrame:
@@ -235,11 +244,13 @@ def write_features(df: pl.DataFrame, bucket: str = DOCUMARIS_ANALYTICS_BUCKET) -
 
 # ── Entry point ────────────────────────────────────────────────────────────────
 
-def run(dry_run: bool = False) -> pl.DataFrame:
+def run(dry_run: bool = False, days: int = 90) -> pl.DataFrame:
     """Full pipeline: read clarus → aggregate → write documaris.
 
     Args:
         dry_run: If True, skip the R2 write and return the DataFrame only.
+        days:    Retention window — only events within the past N days are
+                 included. Default 90. Pass 0 to include all history.
 
     Returns:
         Aggregated bca_outlet_features DataFrame.
@@ -255,6 +266,10 @@ def run(dry_run: bool = False) -> pl.DataFrame:
     logger.info("Reading %d file(s)…", len(keys))
     raw = read_audit_chain(keys)
     logger.info("Loaded %d event(s) total", len(raw))
+
+    if days > 0:
+        raw = filter_window(raw, days)
+        logger.info("After %d-day window: %d event(s)", days, len(raw))
 
     features = aggregate(raw)
     logger.info("Aggregated %d outlet(s)", len(features))

@@ -177,6 +177,43 @@ def test_aggregate_output_columns():
     assert set(result.columns) == expected
 
 
+def test_filter_window_removes_old_events():
+    from pipelines.bca.aggregate import filter_window
+    import time
+
+    now_ms = int(time.time() * 1000)
+    old_ms = now_ms - 91 * 86_400_000  # 91 days ago
+    recent_ms = now_ms - 1 * 86_400_000  # 1 day ago
+
+    df = make_audit_chain([
+        {"timestamp_ms": old_ms,    "site_id": "MCH-OUTLET-042",
+         "rule_id": "EUI_PLATINUM_EXCEEDED", "measured_value": 120.0,
+         "threshold": 115.0, "severity": "High", "evidence_quality": "Certified"},
+        {"timestamp_ms": recent_ms, "site_id": "MCH-OUTLET-042",
+         "rule_id": "EUI_PLATINUM_EXCEEDED", "measured_value": 118.0,
+         "threshold": 115.0, "severity": "High", "evidence_quality": "Certified"},
+    ])
+    result = filter_window(df, days=90)
+    assert len(result) == 1
+    assert result["timestamp_ms"][0] == recent_ms
+
+
+def test_filter_window_zero_days_returns_all():
+    from pipelines.bca.aggregate import filter_window
+    import time
+
+    now_ms = int(time.time() * 1000)
+    old_ms = now_ms - 365 * 86_400_000
+
+    df = make_audit_chain([
+        {"timestamp_ms": old_ms, "site_id": "MCH-OUTLET-042",
+         "rule_id": "EUI_PLATINUM_EXCEEDED", "measured_value": 120.0,
+         "threshold": 115.0, "severity": "High", "evidence_quality": "Certified"},
+    ])
+    result = filter_window(df, days=0)
+    assert len(result) == 1
+
+
 def test_rule_to_column_mapping_complete():
     assert set(RULE_TO_COLUMN.keys()) == {
         "EUI_PLATINUM_EXCEEDED", "CHILLER_COP_EXCEEDED", "LPD_PLATINUM_EXCEEDED"

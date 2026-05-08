@@ -27,6 +27,7 @@ load_dotenv()
 def main() -> None:
     parser = argparse.ArgumentParser(description="BCA Green Mark aggregation pipeline")
     parser.add_argument("--dry-run", action="store_true", help="Skip R2 write, print result only")
+    parser.add_argument("--days", type=int, default=90, help="Retention window in days (default 90, 0=all)")
     parser.add_argument("--verbose", "-v", action="store_true", help="Debug logging")
     args = parser.parse_args()
 
@@ -40,7 +41,7 @@ def main() -> None:
 
     from pipelines.bca.aggregate import run
 
-    features = run(dry_run=args.dry_run)
+    features = run(dry_run=args.dry_run, days=args.days)
 
     if features.is_empty():
         logging.warning("No BCA outlet features generated")
