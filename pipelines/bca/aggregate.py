@@ -208,16 +208,16 @@ def aggregate(df: pl.DataFrame) -> pl.DataFrame:
     # Join period info
     result = pivoted.join(period, on="site_id", how="left")
 
-    # Add derived columns
+    # Add derived columns — round sensor values to 2 dp, score to 1 dp
     result = result.with_columns([
         pl.col("site_id").alias("outlet_id"),
         pl.col("site_id").map_elements(derive_operator_id, return_dtype=pl.Utf8).alias("operator_id"),
         pl.col("alert_count").cast(pl.Int32),
-        pl.col("eui_kwh_m2").cast(pl.Float64).fill_null(_METRIC_DEFAULT),
-        pl.col("chiller_cop").cast(pl.Float64).fill_null(_METRIC_DEFAULT),
-        pl.col("lpd_w_m2").cast(pl.Float64).fill_null(_METRIC_DEFAULT),
+        pl.col("eui_kwh_m2").cast(pl.Float64).fill_null(_METRIC_DEFAULT).round(2),
+        pl.col("chiller_cop").cast(pl.Float64).fill_null(_METRIC_DEFAULT).round(3),
+        pl.col("lpd_w_m2").cast(pl.Float64).fill_null(_METRIC_DEFAULT).round(2),
     ]).with_columns(
-        pl.col("alert_count").map_elements(compute_score, return_dtype=pl.Float64).alias("score"),
+        pl.col("alert_count").map_elements(compute_score, return_dtype=pl.Float64).round(1).alias("score"),
     ).select([
         "outlet_id", "operator_id",
         "eui_kwh_m2", "chiller_cop", "lpd_w_m2",
