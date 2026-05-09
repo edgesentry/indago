@@ -10,6 +10,11 @@ name: Publish data to R2
 
 on:
   workflow_dispatch:
+    inputs:
+      download_days:
+        description: "Days of AIS history to pull from R2 (default: 35; use 60+ for backfill)"
+        required: false
+        default: "35"
   workflow_run:
     workflows: ["AIS Upload Validation"]
     branches: ["main"]
@@ -47,6 +52,24 @@ jobs:
       - name: Install dependencies
         run: uv sync --all-extras
 
+      # Cache AIS Parquet partitions across runs.
+      # Partitions older than 7 days are immutable (push-ais-parquet's rolling
+      # re-upload window). A cache keyed on today's UTC date is valid for the
+      # whole day; restore-keys fall back to the most recent prior day's cache.
+      # pull-ais-parquet skips files whose local size matches R2, so a cache
+      # hit means only the recent 7-day window needs to be fetched from R2.
+      - name: Compute today (UTC) for cache key
+        id: date
+        run: echo "today=$(date -u +%Y-%m-%d)" >> "$GITHUB_OUTPUT"
+
+      - name: Restore AIS Parquet cache
+        uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684  # v4.2.3
+        with:
+          path: data/downloads/ais
+          key: ais-parquet-${{ steps.date.outputs.today }}
+          restore-keys: |
+            ais-parquet-
+
       # Pull AIS Parquet, watchlists, and GFW EO parquets in parallel from maridb-public.
       # AIS data is uploaded by the local macOS r2sync LaunchAgent (push-ais-parquet).
       # Optional pulls use || true so a missing object does not abort the job.
@@ -57,11 +80,14 @@ jobs:
           AWS_REGION: auto
         run: |
           # AIS Parquet partitions written by local macOS push-ais-parquet job.
-          # --days 60: pipeline needs 30-day rolling windows; 60 days gives headroom
-          # without downloading unbounded history on every ephemeral CI runner.
+          # Default 35 days covers the 30-day rolling window + 5 days buffer.
+          # Cached partitions are skipped (size match) — only the 7-day re-upload
+          # window needs to be fetched from R2 on a cache hit.
+          # Pass download_days=60 on workflow_dispatch for a full backfill pull.
+          DOWNLOAD_DAYS=${{ inputs.download_days || '35' }}
           uv run python scripts/sync_r2.py pull-ais-parquet \
             --regions japansea,blacksea,middleeast,singapore,europe \
-            --days 60 \
+            --days "$DOWNLOAD_DAYS" \
             --data-dir data/downloads &
           PID_AIS=$!
           # Watchlists from previous pipeline run
