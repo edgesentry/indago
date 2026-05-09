@@ -168,6 +168,59 @@ class TestPushAisParquet:
         sentinel_keys = [k for k, rows in written_keys if f"date={today}" in k and rows == 0]
         assert len(sentinel_keys) == 1, f"expected 1 sentinel, got {written_keys}"
 
+    def test_overwrites_today_even_if_sentinel_already_in_r2(self, tmp_path):
+        """push-ais-parquet re-uploads today's partition even when R2 already has it.
+
+        Reproduces the rotator race: sentinel uploaded before the region's slot ran,
+        then real data arrived — the next r2sync run must overwrite the sentinel.
+        """
+        from datetime import UTC, datetime, timedelta
+
+        import duckdb
+
+        today_str = datetime.now(UTC).date().isoformat()
+        db = tmp_path / "singapore.duckdb"
+        con = duckdb.connect(str(db))
+        con.execute("""
+            CREATE TABLE ais_positions (
+                mmsi VARCHAR, timestamp TIMESTAMPTZ, lat DOUBLE, lon DOUBLE,
+                sog FLOAT, cog FLOAT, nav_status TINYINT, ship_type TINYINT
+            )
+        """)
+        # Insert a row dated today so the DB has today's data
+        con.execute(
+            "INSERT INTO ais_positions VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+            ["123456789", datetime.now(UTC) - timedelta(minutes=30), 1.3, 103.8, 12.0, 180.0, 0, 70],
+        )
+        con.close()
+
+        mock_fs = MagicMock()
+        # Simulate R2 already having today's sentinel (0-row file uploaded earlier)
+        existing_info = MagicMock()
+        existing_info.path = f"maridb-public/ais/region=singapore/date={today_str}/positions.parquet"
+        mock_fs.get_file_info.return_value = [existing_info]
+
+        written_keys = []
+
+        def fake_write_table(table, path, filesystem=None, compression=None):
+            if filesystem is not None:
+                written_keys.append((path, table.num_rows))
+
+        args = argparse.Namespace(
+            data_dir=str(tmp_path), staging_dir=str(tmp_path / "staging"), regions="singapore"
+        )
+        with (
+            patch.object(sync_r2, "_build_r2_fs", return_value=mock_fs),
+            patch.object(sync_r2, "_ais_db_candidates", return_value=[db]),
+            patch("pyarrow.parquet.write_table", side_effect=fake_write_table),
+        ):
+            rc = sync_r2.cmd_push_ais_parquet(args)
+
+        assert rc == 0
+        today_uploads = [(k, rows) for k, rows in written_keys if f"date={today_str}" in k]
+        assert len(today_uploads) == 1, f"expected exactly 1 today upload, got {written_keys}"
+        assert today_uploads[0][1] == 1, "expected real data (1 row), not empty sentinel"
+
     def test_uploads_sentinel_when_today_missing_from_r2(self, tmp_path):
         """push-ais-parquet uploads empty sentinel for today even if DB has older rows."""
         from datetime import date

@@ -1227,6 +1227,9 @@ def cmd_push_ais_parquet(args: argparse.Namespace) -> int:
                         existing_r2.add(part.removeprefix("date="))
         except Exception:
             pass
+        # Always re-upload today's partition: the rotator may have uploaded an
+        # empty sentinel earlier in the day before it had visited this region.
+        existing_r2.discard(today_str)
         to_upload = [d for d in dates if d not in existing_r2]
         # If today has no rows yet, upload an empty sentinel so validation
         # can confirm the pipeline ran for this region.
