@@ -229,6 +229,73 @@ class TestPushAisParquet:
             assert len(uploads) == 1, f"expected 1 upload for {date_str}, got {written_keys}"
             assert uploads[0][1] == 1, f"expected real data for {date_str}, got sentinel"
 
+    def test_force_reupload_days_backfills_old_sentinels(self, tmp_path):
+        """--force-reupload-days N re-uploads partitions up to N days old."""
+        from datetime import UTC, datetime, timedelta
+
+        import duckdb
+
+        now = datetime.now(UTC)
+        # Insert a row 30 days ago — outside the default 7-day window
+        ts_old = now - timedelta(days=30, hours=1)
+        old_date_str = ts_old.date().isoformat()
+
+        db = tmp_path / "singapore.duckdb"
+        con = duckdb.connect(str(db))
+        con.execute("""
+            CREATE TABLE ais_positions (
+                mmsi VARCHAR, timestamp TIMESTAMPTZ, lat DOUBLE, lon DOUBLE,
+                sog FLOAT, cog FLOAT, nav_status TINYINT, ship_type TINYINT
+            )
+        """)
+        con.execute(
+            "INSERT INTO ais_positions VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+            ["123456789", ts_old, 1.3, 103.8, 12.0, 180.0, 0, 70],
+        )
+        con.close()
+
+        mock_fs = MagicMock()
+        # R2 already has the old date as an empty sentinel
+        existing_info = MagicMock()
+        existing_info.path = f"maridb-public/ais/region=singapore/date={old_date_str}/positions.parquet"
+        mock_fs.get_file_info.return_value = [existing_info]
+
+        written_keys = []
+
+        def fake_write_table(table, path, filesystem=None, compression=None):
+            if filesystem is not None:
+                written_keys.append((path, table.num_rows))
+
+        # Default (7 days): should NOT re-upload the 30-day-old partition
+        args = argparse.Namespace(
+            data_dir=str(tmp_path), staging_dir=str(tmp_path / "staging"),
+            regions="singapore", force_reupload_days=7,
+        )
+        with (
+            patch.object(sync_r2, "_build_r2_fs", return_value=mock_fs),
+            patch.object(sync_r2, "_ais_db_candidates", return_value=[db]),
+            patch("pyarrow.parquet.write_table", side_effect=fake_write_table),
+        ):
+            sync_r2.cmd_push_ais_parquet(args)
+        assert not any(f"date={old_date_str}" in k for k, _ in written_keys), \
+            "7-day window should not re-upload 30-day-old partition"
+
+        # --force-reupload-days 60: should re-upload the old partition with real data
+        written_keys.clear()
+        args_backfill = argparse.Namespace(
+            data_dir=str(tmp_path), staging_dir=str(tmp_path / "staging"),
+            regions="singapore", force_reupload_days=60,
+        )
+        with (
+            patch.object(sync_r2, "_build_r2_fs", return_value=mock_fs),
+            patch.object(sync_r2, "_ais_db_candidates", return_value=[db]),
+            patch("pyarrow.parquet.write_table", side_effect=fake_write_table),
+        ):
+            sync_r2.cmd_push_ais_parquet(args_backfill)
+        backfill_uploads = [(k, rows) for k, rows in written_keys if f"date={old_date_str}" in k]
+        assert len(backfill_uploads) == 1, f"expected backfill upload, got {written_keys}"
+        assert backfill_uploads[0][1] == 1, "expected real data row, not sentinel"
+
     def test_uploads_sentinel_when_today_missing_from_r2(self, tmp_path):
         """push-ais-parquet uploads empty sentinel for today even if DB has older rows."""
         from datetime import date

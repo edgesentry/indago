@@ -1227,13 +1227,13 @@ def cmd_push_ais_parquet(args: argparse.Namespace) -> int:
                         existing_r2.add(part.removeprefix("date="))
         except Exception:
             pass
-        # Always re-upload the past 7 days: the rotator cycles through regions
-        # and may have uploaded empty sentinels before a region's slot ran.
-        # Re-uploading the rolling window ensures stale sentinels get replaced.
+        # Re-upload the rolling reupload window (default 7, overridable via
+        # --force-reupload-days) so stale sentinels get replaced by real data.
         from datetime import timedelta as _timedelta
+        reupload_days = getattr(args, "force_reupload_days", 7)
         recent = {
             (_datetime.now(_UTC) - _timedelta(days=i)).date().isoformat()
-            for i in range(7)
+            for i in range(reupload_days)
         }
         existing_r2 -= recent
         to_upload = [d for d in dates if d not in existing_r2]
@@ -1620,6 +1620,14 @@ def main() -> int:
         default=None,
         metavar="REGIONS",
         help=f"Comma-separated region names (default: all). Known: {', '.join(_REGION_PREFIX)}",
+    )
+    push_ais_p.add_argument(
+        "--force-reupload-days",
+        type=int,
+        default=7,
+        metavar="N",
+        help="Re-upload partitions from the past N days even if already in R2 (default: 7). "
+             "Use a larger value (e.g. 60) for a one-time backfill of stale sentinels.",
     )
 
     pull_ais_p = sub.add_parser(
