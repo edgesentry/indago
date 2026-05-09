@@ -37,14 +37,16 @@ _CLARUS_ANALYTICS_URL = os.getenv(
 # ── Fetch helpers (same pattern as bca/aggregate.py) ──────────────────────────
 
 def _fetch_live_index(days: int) -> dict:
-    """Fetch live-index keys with server-side time filter baked in.
+    """Fetch raw live-index keys with server-side time filter.
 
-    Passing ?days=N tells live-index.js to exclude keys whose filename
-    timestamp is older than N days — so we never even list stale files.
+    Always passes ?all=1 so live-index returns raw files (not rollup files).
+    The rollup job reads raw files to produce the rollup — it must not read
+    its own output. ?days=N applies the time-window filter server-side so
+    stale files are never downloaded.
     Pass days=0 for all history.
     """
     import httpx
-    params = f"all=1&days={days}" if days <= 0 else f"days={days}"
+    params = "all=1" if days <= 0 else f"all=1&days={days}"
     url = f"{_CLARUS_ANALYTICS_URL}/api/live-index?{params}"
     logger.debug("GET %s", url)
     resp = httpx.get(url, timeout=30)
