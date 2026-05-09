@@ -168,17 +168,22 @@ class TestPushAisParquet:
         sentinel_keys = [k for k, rows in written_keys if f"date={today}" in k and rows == 0]
         assert len(sentinel_keys) == 1, f"expected 1 sentinel, got {written_keys}"
 
-    def test_overwrites_today_even_if_sentinel_already_in_r2(self, tmp_path):
-        """push-ais-parquet re-uploads today's partition even when R2 already has it.
+    def test_overwrites_recent_days_even_if_sentinel_already_in_r2(self, tmp_path):
+        """push-ais-parquet re-uploads the past 7 days even when R2 already has them.
 
         Reproduces the rotator race: sentinel uploaded before the region's slot ran,
         then real data arrived — the next r2sync run must overwrite the sentinel.
+        Also verifies that data from 3 days ago is re-uploaded (not just today).
         """
         from datetime import UTC, datetime, timedelta
 
         import duckdb
 
-        today_str = datetime.now(UTC).date().isoformat()
+        now = datetime.now(UTC)
+        today_str = now.date().isoformat()
+        ts_old = now - timedelta(days=3, hours=1)
+        old_date_str = ts_old.date().isoformat()
+
         db = tmp_path / "singapore.duckdb"
         con = duckdb.connect(str(db))
         con.execute("""
@@ -187,18 +192,20 @@ class TestPushAisParquet:
                 sog FLOAT, cog FLOAT, nav_status TINYINT, ship_type TINYINT
             )
         """)
-        # Insert a row dated today so the DB has today's data
-        con.execute(
-            "INSERT INTO ais_positions VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-            ["123456789", datetime.now(UTC) - timedelta(minutes=30), 1.3, 103.8, 12.0, 180.0, 0, 70],
-        )
+        for ts in [now - timedelta(minutes=30), ts_old]:
+            con.execute(
+                "INSERT INTO ais_positions VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                ["123456789", ts, 1.3, 103.8, 12.0, 180.0, 0, 70],
+            )
         con.close()
 
         mock_fs = MagicMock()
-        # Simulate R2 already having today's sentinel (0-row file uploaded earlier)
-        existing_info = MagicMock()
-        existing_info.path = f"maridb-public/ais/region=singapore/date={today_str}/positions.parquet"
-        mock_fs.get_file_info.return_value = [existing_info]
+        # R2 already has both dates as empty sentinels from earlier runs
+        def make_info(date_str):
+            m = MagicMock()
+            m.path = f"maridb-public/ais/region=singapore/date={date_str}/positions.parquet"
+            return m
+        mock_fs.get_file_info.return_value = [make_info(today_str), make_info(old_date_str)]
 
         written_keys = []
 
@@ -217,9 +224,10 @@ class TestPushAisParquet:
             rc = sync_r2.cmd_push_ais_parquet(args)
 
         assert rc == 0
-        today_uploads = [(k, rows) for k, rows in written_keys if f"date={today_str}" in k]
-        assert len(today_uploads) == 1, f"expected exactly 1 today upload, got {written_keys}"
-        assert today_uploads[0][1] == 1, "expected real data (1 row), not empty sentinel"
+        for date_str in [today_str, old_date_str]:
+            uploads = [(k, rows) for k, rows in written_keys if f"date={date_str}" in k]
+            assert len(uploads) == 1, f"expected 1 upload for {date_str}, got {written_keys}"
+            assert uploads[0][1] == 1, f"expected real data for {date_str}, got sentinel"
 
     def test_uploads_sentinel_when_today_missing_from_r2(self, tmp_path):
         """push-ais-parquet uploads empty sentinel for today even if DB has older rows."""

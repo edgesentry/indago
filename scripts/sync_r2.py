@@ -1227,9 +1227,15 @@ def cmd_push_ais_parquet(args: argparse.Namespace) -> int:
                         existing_r2.add(part.removeprefix("date="))
         except Exception:
             pass
-        # Always re-upload today's partition: the rotator may have uploaded an
-        # empty sentinel earlier in the day before it had visited this region.
-        existing_r2.discard(today_str)
+        # Always re-upload the past 7 days: the rotator cycles through regions
+        # and may have uploaded empty sentinels before a region's slot ran.
+        # Re-uploading the rolling window ensures stale sentinels get replaced.
+        from datetime import timedelta as _timedelta
+        recent = {
+            (_datetime.now(_UTC) - _timedelta(days=i)).date().isoformat()
+            for i in range(7)
+        }
+        existing_r2 -= recent
         to_upload = [d for d in dates if d not in existing_r2]
         # If today has no rows yet, upload an empty sentinel so validation
         # can confirm the pipeline ran for this region.
