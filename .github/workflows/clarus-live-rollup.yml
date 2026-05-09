@@ -8,8 +8,6 @@ name: clarus live rollup
 #   - Manual dispatch
 
 on:
-  schedule:
-    - cron: "0 * * * *"   # every hour
   workflow_dispatch:
     inputs:
       days:
