@@ -11,6 +11,9 @@ import pytest
 
 from pipelines.ingest.eo_gfw import fetch_gfw_detections
 
+TOKEN = "test-token"
+JAPAN = (115.0, 25.0, 145.0, 48.0)
+
 
 def _make_vessel(vessel_id: str, date: str, lat: float, lon: float, detections: int = 1) -> dict:
     return {
@@ -44,13 +47,12 @@ def _mock_response(vessels: list[dict], dataset_key: str = "public-global-sar-pr
 # ---------------------------------------------------------------------------
 
 
-def test_parses_sar_response(monkeypatch):
-    monkeypatch.setenv("GFW_API_TOKEN", "test-token")
+def test_parses_sar_response():
     vessel = _make_vessel("v1", "2026-04", 35.0, 139.0, detections=2)
 
     with patch("httpx.post") as mock_post:
         mock_post.return_value = _mock_response([vessel])
-        recs = fetch_gfw_detections(bbox=(115.0, 25.0, 145.0, 48.0), days=30)
+        recs = fetch_gfw_detections(bbox=JAPAN, days=30, api_token=TOKEN)
 
     assert len(recs) > 0
     r = recs[0]
@@ -61,48 +63,43 @@ def test_parses_sar_response(monkeypatch):
     assert 0 < r["confidence"] <= 1.0
 
 
-def test_confidence_capped_at_one(monkeypatch):
-    monkeypatch.setenv("GFW_API_TOKEN", "test-token")
+def test_confidence_capped_at_one():
     vessel = _make_vessel("v1", "2026-04", 35.0, 139.0, detections=10)
 
     with patch("httpx.post") as mock_post:
         mock_post.return_value = _mock_response([vessel])
-        recs = fetch_gfw_detections(bbox=(115.0, 25.0, 145.0, 48.0), days=30)
+        recs = fetch_gfw_detections(bbox=JAPAN, days=30, api_token=TOKEN)
 
     assert recs[0]["confidence"] == 1.0
 
 
-def test_skips_records_missing_vessel_id(monkeypatch):
-    monkeypatch.setenv("GFW_API_TOKEN", "test-token")
+def test_skips_records_missing_vessel_id():
     bad = _make_vessel("v1", "2026-04", 35.0, 139.0)
     bad["vesselId"] = ""
 
     with patch("httpx.post") as mock_post:
         mock_post.return_value = _mock_response([bad])
-        recs = fetch_gfw_detections(bbox=(115.0, 25.0, 145.0, 48.0), days=30)
+        recs = fetch_gfw_detections(bbox=JAPAN, days=30, api_token=TOKEN)
 
     assert recs == []
 
 
-def test_skips_records_missing_timestamp(monkeypatch):
-    monkeypatch.setenv("GFW_API_TOKEN", "test-token")
+def test_skips_records_missing_timestamp():
     bad = _make_vessel("v1", "2026-04", 35.0, 139.0)
     bad["entryTimestamp"] = ""
     bad["exitTimestamp"] = ""
 
     with patch("httpx.post") as mock_post:
         mock_post.return_value = _mock_response([bad])
-        recs = fetch_gfw_detections(bbox=(115.0, 25.0, 145.0, 48.0), days=30)
+        recs = fetch_gfw_detections(bbox=JAPAN, days=30, api_token=TOKEN)
 
     assert recs == []
 
 
-def test_empty_entries_returns_empty(monkeypatch):
-    monkeypatch.setenv("GFW_API_TOKEN", "test-token")
-
+def test_empty_entries_returns_empty():
     with patch("httpx.post") as mock_post:
         mock_post.return_value = _mock_response([])
-        recs = fetch_gfw_detections(bbox=(115.0, 25.0, 145.0, 48.0), days=30)
+        recs = fetch_gfw_detections(bbox=JAPAN, days=30, api_token=TOKEN)
 
     assert recs == []
 
@@ -112,8 +109,7 @@ def test_empty_entries_returns_empty(monkeypatch):
 # ---------------------------------------------------------------------------
 
 
-def test_deduplicates_same_vessel_across_sensors(monkeypatch):
-    monkeypatch.setenv("GFW_API_TOKEN", "test-token")
+def test_deduplicates_same_vessel_across_sensors():
     vessel = _make_vessel("v1", "2026-04", 35.0, 139.0)
 
     sar_resp = _mock_response([vessel], "public-global-sar-presence:v4.0")
@@ -121,15 +117,14 @@ def test_deduplicates_same_vessel_across_sensors(monkeypatch):
 
     with patch("httpx.post") as mock_post:
         mock_post.side_effect = [sar_resp, s2_resp]
-        recs = fetch_gfw_detections(bbox=(115.0, 25.0, 145.0, 48.0), days=30)
+        recs = fetch_gfw_detections(bbox=JAPAN, days=30, api_token=TOKEN)
 
     # Same vessel+date seen by both sensors → only one record
     assert len(recs) == 1
     assert recs[0]["source"] == "gfw-sar"  # SAR fetched first
 
 
-def test_keeps_different_vessels_from_each_sensor(monkeypatch):
-    monkeypatch.setenv("GFW_API_TOKEN", "test-token")
+def test_keeps_different_vessels_from_each_sensor():
     v1 = _make_vessel("v1", "2026-04", 35.0, 139.0)
     v2 = _make_vessel("v2", "2026-04", 36.0, 140.0)
 
@@ -138,7 +133,7 @@ def test_keeps_different_vessels_from_each_sensor(monkeypatch):
 
     with patch("httpx.post") as mock_post:
         mock_post.side_effect = [sar_resp, s2_resp]
-        recs = fetch_gfw_detections(bbox=(115.0, 25.0, 145.0, 48.0), days=30)
+        recs = fetch_gfw_detections(bbox=JAPAN, days=30, api_token=TOKEN)
 
     assert len(recs) == 2
     sources = {r["source"] for r in recs}
@@ -150,25 +145,22 @@ def test_keeps_different_vessels_from_each_sensor(monkeypatch):
 # ---------------------------------------------------------------------------
 
 
-def test_raises_when_no_token(monkeypatch):
-    monkeypatch.delenv("GFW_API_TOKEN", raising=False)
+def test_raises_when_no_token():
     with pytest.raises(RuntimeError, match="GFW_API_TOKEN not set"):
         fetch_gfw_detections(api_token="", api_tokens=[])
 
 
-def test_raises_on_auth_error(monkeypatch):
-    monkeypatch.setenv("GFW_API_TOKEN", "test-token")
+def test_raises_on_auth_error():
     resp = MagicMock()
     resp.status_code = 401
     resp.is_success = False
 
     with patch("httpx.post", return_value=resp):
         with pytest.raises(PermissionError, match="401"):
-            fetch_gfw_detections(bbox=(115.0, 25.0, 145.0, 48.0), days=30)
+            fetch_gfw_detections(bbox=JAPAN, days=30, api_token=TOKEN)
 
 
-def test_raises_on_server_error(monkeypatch):
-    monkeypatch.setenv("GFW_API_TOKEN", "test-token")
+def test_raises_on_server_error():
     resp = MagicMock()
     resp.status_code = 524
     resp.is_success = False
@@ -176,4 +168,4 @@ def test_raises_on_server_error(monkeypatch):
 
     with patch("httpx.post", return_value=resp):
         with pytest.raises(RuntimeError, match="524"):
-            fetch_gfw_detections(bbox=(115.0, 25.0, 145.0, 48.0), days=30)
+            fetch_gfw_detections(bbox=JAPAN, days=30, api_token=TOKEN)
