@@ -1,9 +1,13 @@
 """
-EO vessel detection ingestion — Global Fishing Watch Vessel Presence API.
+EO vessel detection ingestion — GFW SAR + Sentinel-2 presence datasets.
 
-Fetches vessel presence detections (EO + VMS + AIS fused) from the GFW
-4Wings API for a given bounding box and time range, then stores raw EO
-detections (those NOT matched by AIS) into the eo_detections DuckDB table.
+Fetches satellite vessel detections from the GFW 4Wings API using the
+public-global-sar-presence and public-global-sentinel2-presence datasets,
+then stores them in the eo_detections DuckDB table.
+
+These datasets return in <20s for all regions. The previously used
+public-global-presence (AIS-fused) dataset was abandoned because it exceeds
+Cloudflare's origin timeout (HTTP 524) for most regions.
 
 API reference: https://globalfishingwatch.org/our-apis/documentation
 Requires a free GFW API token: https://globalfishingwatch.org/data/vessel-presence/
@@ -16,7 +20,7 @@ CSV schema:
     detected_at   – ISO-8601 UTC timestamp
     lat           – WGS-84 latitude (decimal degrees)
     lon           – WGS-84 longitude (decimal degrees)
-    source        – data source label (e.g. "gfw", "skytruth")
+    source        – data source label (e.g. "gfw-sar", "gfw-s2")
     confidence    – detection confidence 0–1 (optional, default 1.0)
 
 Usage:
@@ -49,17 +53,31 @@ GFW_API_TOKEN = os.getenv("GFW_API_TOKEN", "")
 DEFAULT_BBOX = (95.0, 1.0, 110.0, 6.0)
 
 
+# SAR and Sentinel-2 presence datasets respond in ~10-16s for all regions.
+# public-global-presence:latest with group-by=VESSEL_ID was abandoned: it
+# takes 64-98 minutes per region, always exceeding Cloudflare's ~100s origin
+# timeout (HTTP 524). GFW server holds the concurrent slot for the full
+# computation duration even after the client disconnects, blocking all
+# subsequent requests on the same token for 10+ minutes per region.
+_EO_DATASETS = [
+    ("public-global-sar-presence:latest", "gfw-sar"),
+    ("public-global-sentinel2-presence:latest", "gfw-s2"),
+]
+
+
 def fetch_gfw_detections(
     bbox: tuple[float, float, float, float] = DEFAULT_BBOX,
     days: int = 30,
     api_token: str = GFW_API_TOKEN,
     api_tokens: list[str] | None = None,
 ) -> list[dict]:
-    """Fetch vessel presence detections from GFW 4Wings API.
+    """Fetch satellite EO vessel detections from GFW 4Wings API (SAR + Sentinel-2).
 
-    Pass ``api_tokens`` (list of tokens) to rotate across multiple tokens on
-    429 before falling back to the timed retry.  This lets concurrent pipeline
-    runs share the load without hitting the per-token concurrency limit.
+    Queries public-global-sar-presence and public-global-sentinel2-presence.
+    Both respond in <20s for all regions. Results are deduplicated by
+    vesselId+date so vessels detected by both sensors appear once.
+
+    Pass ``api_tokens`` to rotate across multiple tokens on 429.
 
     Returns a list of detection dicts with keys:
         detection_id, detected_at, lat, lon, source, confidence
@@ -81,23 +99,9 @@ def fetch_gfw_detections(
     lon_min, lat_min, lon_max, lat_max = bbox
     end_dt = datetime.now(UTC)
     start_dt = end_dt - timedelta(days=days)
+    date_range = f"{start_dt.strftime('%Y-%m-%d')},{end_dt.strftime('%Y-%m-%d')}"
 
-    # The 4Wings /report endpoint requires POST with a GeoJSON body for the
-    # region; passing region as a query param returns 422.
-    # spatial-resolution and temporal-resolution are required query params.
-    params = {
-        # public-global-presence:latest covers all vessel types (fishing + cargo +
-        # tankers) and is accessible with a standard free GFW API token.
-        # public-global-fishing-vessels:latest requires a research-tier account.
-        "datasets[0]": "public-global-presence:latest",
-        "date-range": f"{start_dt.strftime('%Y-%m-%d')},{end_dt.strftime('%Y-%m-%d')}",
-        "spatial-resolution": "LOW",
-        "temporal-resolution": "MONTHLY",
-        "group-by": "VESSEL_ID",
-        "format": "JSON",
-    }
-    # Bounding box as a GeoJSON FeatureCollection (format required by GFW v3)
-    body = {
+    geojson_body = {
         "geojson": {
             "type": "FeatureCollection",
             "features": [
@@ -120,94 +124,124 @@ def fetch_gfw_detections(
             ],
         }
     }
-    headers = {
-        "Authorization": f"Bearer {api_token}",
-        "Content-Type": "application/json",
-    }
 
-    _RETRY_WAIT = 60  # seconds — GFW allows one concurrent report per token
+    _RETRY_WAIT = 60
     _MAX_WAITS = 5
-    _CONN_RETRY_WAITS = (30, 60, 120)  # backoff for connection-level errors
+    _CONN_RETRY_WAITS = (30, 60, 120)
 
-    token_idx = 0
-    wait_count = 0
-    conn_attempt = 0
+    def _fetch_dataset(dataset: str, source_label: str) -> list[dict]:
+        params = {
+            "datasets[0]": dataset,
+            "date-range": date_range,
+            "spatial-resolution": "LOW",
+            "temporal-resolution": "MONTHLY",
+            "group-by": "VESSEL_ID",
+            "format": "JSON",
+        }
+        headers = {"Content-Type": "application/json"}
+        token_idx = 0
+        wait_count = 0
+        conn_attempt = 0
 
-    while True:
-        current_token = tokens[token_idx % len(tokens)]
-        headers["Authorization"] = f"Bearer {current_token}"
-        try:
-            resp = httpx.post(
-                f"{GFW_API_BASE}/4wings/report",
-                params=params,
-                json=body,
-                headers=headers,
-                timeout=300,
-            )
-        except (httpx.RemoteProtocolError, httpx.ReadTimeout, httpx.ConnectError) as exc:
-            if conn_attempt >= len(_CONN_RETRY_WAITS):
-                raise RuntimeError(
-                    f"GFW API connection failed after {conn_attempt} retries: {exc}"
-                ) from exc
-            wait = _CONN_RETRY_WAITS[conn_attempt]
-            print(
-                f"  GFW connection error ({exc}); retrying in {wait}s"
-                f" (attempt {conn_attempt + 1}/{len(_CONN_RETRY_WAITS)}) ...",
-                flush=True,
-            )
-            time.sleep(wait)
-            conn_attempt += 1
-            continue
-        if resp.status_code in (401, 403):
-            raise PermissionError(
-                f"GFW API returned {resp.status_code}: token lacks access to "
-                f"public-global-presence:latest. Check your token at "
-                f"https://globalfishingwatch.org/our-apis/tokens"
-            )
-        if resp.status_code == 429:
-            next_idx = token_idx + 1
-            if next_idx % len(tokens) != 0:
-                # Try next token before waiting
+        while True:
+            headers["Authorization"] = f"Bearer {tokens[token_idx % len(tokens)]}"
+            try:
+                resp = httpx.post(
+                    f"{GFW_API_BASE}/4wings/report",
+                    params=params,
+                    json=geojson_body,
+                    headers=headers,
+                    timeout=60,
+                )
+            except (httpx.RemoteProtocolError, httpx.ReadTimeout, httpx.ConnectError) as exc:
+                if conn_attempt >= len(_CONN_RETRY_WAITS):
+                    raise RuntimeError(
+                        f"GFW API connection failed after {conn_attempt} retries: {exc}"
+                    ) from exc
+                wait = _CONN_RETRY_WAITS[conn_attempt]
                 print(
-                    f"  GFW API 429 on token[{token_idx % len(tokens)}] — "
-                    f"trying token[{next_idx % len(tokens)}] ...",
+                    f"  GFW connection error ({exc}); retrying in {wait}s"
+                    f" (attempt {conn_attempt + 1}/{len(_CONN_RETRY_WAITS)}) ...",
                     flush=True,
                 )
-                token_idx = next_idx
+                time.sleep(wait)
+                conn_attempt += 1
                 continue
-            # All tokens exhausted — wait before cycling again
-            if wait_count >= _MAX_WAITS:
+            if resp.status_code in (401, 403):
                 raise PermissionError(
-                    f"GFW API 429: all {len(tokens)} token(s) busy after "
-                    f"{_MAX_WAITS} wait cycles ({_MAX_WAITS * _RETRY_WAIT}s total)"
+                    f"GFW API returned {resp.status_code}: token lacks access to "
+                    f"{dataset}. Check your token at "
+                    f"https://globalfishingwatch.org/our-apis/tokens"
                 )
-            print(
-                f"  GFW API 429 — all {len(tokens)} token(s) busy; "
-                f"retrying in {_RETRY_WAIT}s (wait {wait_count + 1}/{_MAX_WAITS}) ...",
-                flush=True,
-            )
-            time.sleep(_RETRY_WAIT)
-            token_idx = next_idx
-            wait_count += 1
-            continue
-        if not resp.is_success:
-            raise RuntimeError(f"GFW API {resp.status_code}: {resp.text[:500]}")
-        break
-    data = resp.json()
+            if resp.status_code == 429:
+                next_idx = token_idx + 1
+                if next_idx % len(tokens) != 0:
+                    print(
+                        f"  GFW API 429 on token[{token_idx % len(tokens)}] — "
+                        f"trying token[{next_idx % len(tokens)}] ...",
+                        flush=True,
+                    )
+                    token_idx = next_idx
+                    continue
+                if wait_count >= _MAX_WAITS:
+                    raise PermissionError(
+                        f"GFW API 429: all {len(tokens)} token(s) busy after "
+                        f"{_MAX_WAITS} wait cycles ({_MAX_WAITS * _RETRY_WAIT}s total)"
+                    )
+                print(
+                    f"  GFW API 429 — all {len(tokens)} token(s) busy; "
+                    f"retrying in {_RETRY_WAIT}s (wait {wait_count + 1}/{_MAX_WAITS}) ...",
+                    flush=True,
+                )
+                time.sleep(_RETRY_WAIT)
+                token_idx = next_idx
+                wait_count += 1
+                continue
+            if not resp.is_success:
+                raise RuntimeError(f"GFW API {resp.status_code}: {resp.text[:500]}")
+            break
 
-    detections = []
-    for entry in data.get("entries", []):
-        if entry.get("vessel_id") and not entry.get("ais_present", True):
-            detections.append(
+        entries = resp.json().get("entries", [])
+        if not entries:
+            return []
+
+        # SAR/S2 response: entries[0] is keyed by the resolved dataset version;
+        # its value is a list of per-vessel detection records.
+        ds_key = next(iter(entries[0]), None)
+        if not ds_key:
+            return []
+
+        records = []
+        for v in entries[0][ds_key]:
+            vessel_id = v.get("vesselId") or v.get("vessel_id")
+            entry_ts = v.get("entryTimestamp") or v.get("exitTimestamp")
+            if not vessel_id or not entry_ts:
+                continue
+            records.append(
                 {
-                    "detection_id": entry.get("id") or str(uuid.uuid4()),
-                    "detected_at": datetime.fromisoformat(entry["timestamp"]).replace(tzinfo=UTC),
-                    "lat": float(entry["lat"]),
-                    "lon": float(entry["lon"]),
-                    "source": "gfw",
-                    "confidence": float(entry.get("score", 1.0)),
+                    "detection_id": f"{vessel_id}:{v.get('date', '')}:{source_label}",
+                    "detected_at": datetime.fromisoformat(
+                        entry_ts.replace("Z", "+00:00")
+                    ).replace(tzinfo=UTC),
+                    "lat": float(v["lat"]),
+                    "lon": float(v["lon"]),
+                    "source": source_label,
+                    # cap at 1.0: 3+ SAR passes in a month = high confidence
+                    "confidence": min(1.0, float(v.get("detections", 1)) / 3.0),
                 }
             )
+        return records
+
+    # Merge SAR + Sentinel-2; deduplicate by vesselId+date across sensors
+    seen: set[str] = set()
+    detections: list[dict] = []
+    for dataset, source_label in _EO_DATASETS:
+        for rec in _fetch_dataset(dataset, source_label):
+            # strip source suffix to dedup across sensors
+            dedup_key = rec["detection_id"].rsplit(":", 1)[0]
+            if dedup_key not in seen:
+                seen.add(dedup_key)
+                detections.append(rec)
     return detections
 
 
