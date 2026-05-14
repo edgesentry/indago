@@ -4,7 +4,7 @@ These tests mock the HTTP layer so no real API calls are made.
 They cover response parsing, deduplication, and error handling.
 """
 
-from datetime import UTC, datetime
+from datetime import UTC
 from unittest.mock import MagicMock, patch
 
 import pytest
