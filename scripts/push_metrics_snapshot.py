@@ -214,8 +214,11 @@ def main() -> None:
             old_snap = json.loads(old_obj["Body"].read().decode())
             trend["p50_7d_ago"] = old_snap.get("precision_at_50")
             trend["p50_7d_ago_date"] = old_snap.get("date")
-        except Exception:
-            pass
+        except Exception as exc:
+            print(
+                f"[warn] Could not load 7-day-old trend snapshot for entry {entries[7]!r}: {exc}",
+                file=sys.stderr,
+            )
     _TREND_PATH.parent.mkdir(parents=True, exist_ok=True)
     _TREND_PATH.write_text(json.dumps(trend, indent=2))
     print(f"Wrote trend data: {trend}")
