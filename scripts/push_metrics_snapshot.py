@@ -206,8 +206,11 @@ def main() -> None:
             trend["prev_p50"] = prev_snap.get("precision_at_50")
             trend["prev_known_positives"] = prev_snap.get("known_positives")
             trend["prev_date"] = prev_snap.get("date")
-        except Exception:
-            pass
+        except Exception as exc:
+            print(
+                f"[warn] Could not load previous-day trend snapshot for entry {entries[1]!r}: {exc}",
+                file=sys.stderr,
+            )
     if len(entries) >= 8:
         try:
             old_obj = r2_client.get_object(Bucket=bucket, Key=f"{_METRICS_PREFIX}/{entries[7]}.json")
