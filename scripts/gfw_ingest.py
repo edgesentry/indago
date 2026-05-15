@@ -31,7 +31,7 @@ _ACTIVE_REGIONS = ["singapore", "japan", "europe", "blacksea", "middleeast"]
 # bbox source: run_pipeline.py PRESETS (stored as lat_min,lon_min,lat_max,lon_max)
 _REGION_META: dict[str, tuple[str, tuple[float, float, float, float]]] = {
     "singapore": ("singapore", (92.0, -5.0, 122.0, 22.0)),
-    "japan": ("japansea", (115.0, 25.0, 145.0, 48.0)),
+    "japan": ("japan", (115.0, 25.0, 145.0, 48.0)),
     "europe": ("europe", (-22.0, 30.0, 42.0, 72.0)),
     "blacksea": ("blacksea", (27.0, 40.0, 42.0, 48.0)),
     "middleeast": ("middleeast", (32.0, -10.0, 80.0, 30.0)),
