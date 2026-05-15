@@ -196,11 +196,12 @@ def main() -> None:
             )
 
     # Write metrics_trend.json for notify_metrics.py (prev day + 7-day-ago values)
+    r2_client = cb[0]  # cb is (boto3_client, bucket_name)
     trend: dict = {}
     # entries[0] is today; entries[1] is yesterday
     if len(entries) >= 2:
         try:
-            prev_obj = client.get_object(Bucket=bucket, Key=f"{_METRICS_PREFIX}/{entries[1]}.json")
+            prev_obj = r2_client.get_object(Bucket=bucket, Key=f"{_METRICS_PREFIX}/{entries[1]}.json")
             prev_snap = json.loads(prev_obj["Body"].read().decode())
             trend["prev_p50"] = prev_snap.get("precision_at_50")
             trend["prev_known_positives"] = prev_snap.get("known_positives")
@@ -209,7 +210,7 @@ def main() -> None:
             pass
     if len(entries) >= 8:
         try:
-            old_obj = client.get_object(Bucket=bucket, Key=f"{_METRICS_PREFIX}/{entries[7]}.json")
+            old_obj = r2_client.get_object(Bucket=bucket, Key=f"{_METRICS_PREFIX}/{entries[7]}.json")
             old_snap = json.loads(old_obj["Body"].read().decode())
             trend["p50_7d_ago"] = old_snap.get("precision_at_50")
             trend["p50_7d_ago_date"] = old_snap.get("date")
