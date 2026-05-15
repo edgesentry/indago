@@ -12,6 +12,8 @@ import pytest
 REPO_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO_ROOT))
 from scripts.push_metrics_snapshot import (
+    _MAX_HISTORY,
+    _TREND_PATH,
     _collect_snapshot,
     _delete_key,
     _make_client,
@@ -267,6 +269,83 @@ def test_delete_key_ignores_errors(capsys):
     _delete_key(cb, "maridb-public", "metrics/20260430.json")  # must not raise
     captured = capsys.readouterr()
     assert "warning" in captured.err
+
+
+def test_max_history_is_30():
+    assert _MAX_HISTORY == 30
+
+
+def test_trend_path_is_defined():
+    assert str(_TREND_PATH).endswith("metrics_trend.json")
+
+
+def test_trend_json_written_with_prev_data(tmp_path, monkeypatch):
+    """main() writes metrics_trend.json with prev-day and 7-day-ago values."""
+    import sys
+    monkeypatch.chdir(tmp_path)
+    processed = tmp_path / "data" / "processed"
+    processed.mkdir(parents=True)
+
+    # Write a backtest summary so _collect_snapshot has data
+    summary = {
+        "metrics_summary": {
+            "precision_at_50": {"mean": 0.392, "ci95_low": 0.31, "ci95_high": 0.47},
+            "recall_at_200": {"mean": 1.0},
+        },
+        "total_known_cases": 98,
+        "regions": ["singapore"],
+        "skipped_regions": [],
+        "generated_at_utc": "2026-05-15T13:00:00Z",
+    }
+    (processed / "backtest_public_integration_summary.json").write_text(json.dumps(summary))
+
+    # Fake boto3 client that returns index with 8 entries (prev + 7d-ago available)
+    prev_snap = json.dumps({"precision_at_50": 0.388, "known_positives": 97, "date": "2026-05-14"})
+    old_snap = json.dumps({"precision_at_50": 0.376, "known_positives": 94, "date": "2026-05-08"})
+    index_data = json.dumps({"entries": [
+        "20260515", "20260514", "20260513", "20260512", "20260511",
+        "20260510", "20260509", "20260508",
+    ]})
+
+    def fake_get_object(Bucket, Key):
+        if Key.endswith("index.json"):
+            return {"Body": MagicMock(read=lambda: index_data.encode())}
+        if "20260514" in Key:
+            return {"Body": MagicMock(read=lambda: prev_snap.encode())}
+        if "20260508" in Key:
+            return {"Body": MagicMock(read=lambda: old_snap.encode())}
+        raise Exception("unexpected key")
+
+    mock_client = MagicMock()
+    mock_client.get_object.side_effect = fake_get_object
+    mock_client.put_object = MagicMock()
+    mock_client.delete_object = MagicMock()
+
+    monkeypatch.setenv("AWS_ACCESS_KEY_ID", "k")
+    monkeypatch.setenv("AWS_SECRET_ACCESS_KEY", "s")
+
+    from scripts.push_metrics_snapshot import main as run_main
+    # Patch module-level functions so main() uses mock_client
+    monkeypatch.setattr("scripts.push_metrics_snapshot._make_client", lambda b: (mock_client, b))
+    monkeypatch.setattr("scripts.push_metrics_snapshot._read_index",
+        lambda cb, b: ["20260515", "20260514", "20260513", "20260512", "20260511",
+                       "20260510", "20260509", "20260508"])
+    monkeypatch.setattr("scripts.push_metrics_snapshot._write_json", lambda *a, **kw: None)
+    monkeypatch.setattr("scripts.push_metrics_snapshot._delete_key", lambda *a, **kw: None)
+
+    # Call main via CLI args
+    monkeypatch.setattr(sys, "argv", ["push_metrics_snapshot.py", "--date", "2026-05-15"])
+    try:
+        run_main()
+    except SystemExit as exc:
+        assert exc.code in (0, None)
+
+    trend_file = tmp_path / "data" / "processed" / "metrics_trend.json"
+    assert trend_file.exists(), "metrics_trend.json was not written"
+    trend = json.loads(trend_file.read_text())
+    assert trend.get("prev_p50") == pytest.approx(0.388)
+    assert trend.get("prev_known_positives") == 97
+    assert trend.get("p50_7d_ago") == pytest.approx(0.376)
 
 
 def test_make_client_uses_env_credentials(monkeypatch):

@@ -30,6 +30,7 @@ from email.mime.text import MIMEText
 from pathlib import Path
 
 _REPORT_PATH = Path("data/processed/backtest_public_integration_summary.json")
+_TREND_PATH = Path("data/processed/metrics_trend.json")
 _REGRESSION_THRESHOLD = 0.01  # #507: lowered from 0.02 — catches single-step drops like 0.27→0.26
 
 
@@ -54,6 +55,24 @@ def _format_pipeline_only_body(run_url: str, snapshot_info: str) -> tuple[str, s
     return subject, html
 
 
+def _load_trend() -> dict:
+    """Return trend data from metrics_trend.json written by push_metrics_snapshot.py."""
+    try:
+        return json.loads(_TREND_PATH.read_text())
+    except Exception:
+        return {}
+
+
+def _delta_str(new: float | None, old: float | None, fmt: str = ".4f") -> str:
+    """Format a signed delta with up/down arrow."""
+    if new is None or old is None:
+        return ""
+    d = new - old
+    arrow = "↑" if d > 0 else "↓" if d < 0 else "→"
+    color = "#27ae60" if d > 0 else "#c0392b" if d < 0 else "#8b949e"
+    return f' <span style="color:{color}">{arrow} {abs(d):{fmt}}</span>'
+
+
 def _format_body(
     report: dict, prev_p50: float | None, run_url: str, snapshot_info: str
 ) -> tuple[str, str]:
@@ -69,19 +88,24 @@ def _format_body(
     total_positives = report.get("total_known_cases", 0)
     generated_at = report.get("generated_at_utc", "")[:10]
 
-    regression = prev_p50 is not None and (prev_p50 - p50) > _REGRESSION_THRESHOLD
-    improvement = prev_p50 is not None and (p50 - prev_p50) > _REGRESSION_THRESHOLD
+    trend = _load_trend()
+    trend_prev_p50: float | None = prev_p50 or trend.get("prev_p50")
+    trend_p50_7d: float | None = trend.get("p50_7d_ago")
+    trend_prev_positives: int | None = trend.get("prev_known_positives")
+
+    regression = trend_prev_p50 is not None and (trend_prev_p50 - p50) > _REGRESSION_THRESHOLD
+    improvement = trend_prev_p50 is not None and (p50 - trend_prev_p50) > _REGRESSION_THRESHOLD
 
     if regression:
         subject = (
-            f"⚠️ indago data publish — Precision@50 regression ({p50:.4f} ↓ from {prev_p50:.4f})"
+            f"⚠️ indago data publish — Precision@50 regression ({p50:.4f} ↓ from {trend_prev_p50:.4f})"
         )
-        status_banner = f'<p style="color:#c0392b;font-weight:bold">⚠️ Regression detected: Precision@50 dropped {prev_p50 - p50:.4f} vs previous run</p>'
+        status_banner = f'<p style="color:#c0392b;font-weight:bold">⚠️ Regression detected: Precision@50 dropped {trend_prev_p50 - p50:.4f} vs previous run</p>'
     elif improvement:
         subject = (
-            f"✅ indago data publish — Precision@50 improved ({p50:.4f} ↑ from {prev_p50:.4f})"
+            f"✅ indago data publish — Precision@50 improved ({p50:.4f} ↑ from {trend_prev_p50:.4f})"
         )
-        status_banner = f'<p style="color:#27ae60;font-weight:bold">✅ Improvement: Precision@50 up {p50 - prev_p50:.4f} vs previous run</p>'
+        status_banner = f'<p style="color:#27ae60;font-weight:bold">✅ Improvement: Precision@50 up {p50 - trend_prev_p50:.4f} vs previous run</p>'
     else:
         subject = f"indago data publish — Precision@50 {p50:.4f} ({generated_at})"
         status_banner = ""
@@ -117,11 +141,24 @@ def _format_body(
 
 <h3>Overall Metrics</h3>
 <table border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse">
-  <tr><th>Metric</th><th>Value</th></tr>
-  <tr><td>Precision@50</td><td><strong>{p50:.4f}</strong>{ci_str}</td></tr>
-  <tr><td>Recall@200</td><td>{recall:.4f}</td></tr>
-  <tr><td>Known positives</td><td>{total_positives}</td></tr>
-  {"<tr><td>Previous Precision@50</td><td>" + f"{prev_p50:.4f}" + "</td></tr>" if prev_p50 is not None else ""}
+  <tr><th>Metric</th><th>Value</th><th>vs prev day</th><th>7-day trend</th></tr>
+  <tr>
+    <td>Precision@50</td>
+    <td><strong>{p50:.4f}</strong>{ci_str}</td>
+    <td>{_delta_str(p50, trend_prev_p50)}</td>
+    <td>{"" if trend_p50_7d is None else f"{trend_p50_7d:.4f} → {p50:.4f}{_delta_str(p50, trend_p50_7d)}"}</td>
+  </tr>
+  <tr>
+    <td>Recall@200</td>
+    <td>{recall:.4f}</td>
+    <td></td><td></td>
+  </tr>
+  <tr>
+    <td>Known positives</td>
+    <td>{total_positives}</td>
+    <td>{_delta_str(total_positives, trend_prev_positives, "d") if trend_prev_positives is not None else ""}</td>
+    <td></td>
+  </tr>
 </table>
 
 <h3>Per-Region Coverage</h3>

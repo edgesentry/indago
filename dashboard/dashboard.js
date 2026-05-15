@@ -93,6 +93,71 @@ function sparkline(snapshots, field, { color = "#3fb950", fmt = (v) => String(v)
   });
 }
 
+function trendChart(snapshots, { width = 560 } = {}) {
+  const data = snapshots
+    .filter((s) => s.precision_at_50 != null)
+    .map((s) => ({
+      date: new Date(s.date),
+      p50: +s.precision_at_50,
+      lo: s.precision_at_50_ci_low != null ? +s.precision_at_50_ci_low : null,
+      hi: s.precision_at_50_ci_high != null ? +s.precision_at_50_ci_high : null,
+    }));
+
+  if (data.length === 0) return null;
+
+  const hasCi = data.some((d) => d.lo != null && d.hi != null);
+  const marks = [];
+  if (hasCi) {
+    marks.push(
+      Plot.areaY(data.filter((d) => d.lo != null), {
+        x: "date", y1: "lo", y2: "hi",
+        fill: "#58a6ff", fillOpacity: 0.15,
+      })
+    );
+  }
+  marks.push(
+    Plot.lineY(data, { x: "date", y: "p50", stroke: "#58a6ff", strokeWidth: 2 }),
+    Plot.dotY(data, { x: "date", y: "p50", fill: "#58a6ff", r: 3 }),
+  );
+
+  return Plot.plot({
+    width,
+    height: 140,
+    marginLeft: 40,
+    marginRight: 8,
+    marginTop: 8,
+    marginBottom: 28,
+    style: { background: "transparent", color: "#8b949e", fontSize: "11px" },
+    x: { type: "time", label: null, tickFormat: "%m/%d" },
+    y: { label: null, tickFormat: ".3f", ticks: 4 },
+    marks,
+  });
+}
+
+function knownPositivesChart(snapshots, { width = 560 } = {}) {
+  const data = snapshots
+    .filter((s) => s.known_positives != null)
+    .map((s) => ({ date: new Date(s.date), value: +s.known_positives }));
+
+  if (data.length === 0) return null;
+
+  return Plot.plot({
+    width,
+    height: 140,
+    marginLeft: 40,
+    marginRight: 8,
+    marginTop: 8,
+    marginBottom: 28,
+    style: { background: "transparent", color: "#8b949e", fontSize: "11px" },
+    x: { type: "time", label: null, tickFormat: "%m/%d" },
+    y: { label: null, tickFormat: "d", ticks: 4 },
+    marks: [
+      Plot.lineY(data, { x: "date", y: "value", stroke: "#e3b341", strokeWidth: 2 }),
+      Plot.dotY(data, { x: "date", y: "value", fill: "#e3b341", r: 3 }),
+    ],
+  });
+}
+
 // ---------------------------------------------------------------------------
 // DOM helpers
 // ---------------------------------------------------------------------------
@@ -234,6 +299,29 @@ async function main() {
     setMetric("val-freshness", `${hoursAgo}h`, freshnessColor);
     setSub("sub-freshness", `last run: ${latest.generated_at_utc.slice(0, 16).replace("T", " ")} UTC`);
   }
+
+  // Precision@50 trend (30-day with CI band)
+  const p50Latest = latest.precision_at_50;
+  const p50Prev = snapshots.length >= 2 ? snapshots.at(-2)?.precision_at_50 : null;
+  const p50Delta = p50Latest != null && p50Prev != null ? p50Latest - p50Prev : null;
+  const p50DeltaStr = p50Delta != null
+    ? `${p50Delta >= 0 ? "+" : ""}${p50Delta.toFixed(4)} vs prev day`
+    : "";
+  setMetric("val-p50-trend", p50Latest != null ? p50Latest.toFixed(4) : "—",
+    p50Delta == null ? "" : p50Delta > 0.001 ? "good" : p50Delta < -0.001 ? "bad" : "");
+  setSub("sub-p50-trend", p50DeltaStr || "precision at rank 50");
+  mountChart("chart-p50-trend", trendChart(snapshots));
+
+  // Known positives trend
+  const kpLatest = latest.known_positives;
+  const kpPrev = snapshots.length >= 2 ? snapshots.at(-2)?.known_positives : null;
+  const kpDelta = kpLatest != null && kpPrev != null ? kpLatest - kpPrev : null;
+  const kpDeltaStr = kpDelta != null
+    ? `${kpDelta >= 0 ? "+" : ""}${kpDelta} vs prev day`
+    : "";
+  setMetric("val-kp-trend", kpLatest ?? "—");
+  setSub("sub-kp-trend", kpDeltaStr || "OFAC-matched watchlist positives");
+  mountChart("chart-kp-trend", knownPositivesChart(snapshots));
 
   renderTable([...snapshots].reverse());
 
