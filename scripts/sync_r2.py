@@ -157,6 +157,8 @@ _GDELT_R2_KEY = "gdelt.lance.zip"  # single zip for gdelt
 _SANCTIONS_DB_R2_KEY = "public_eval.duckdb"  # OpenSanctions DB; separate from rotation zip
 _WATCHLISTS_R2_KEY = "watchlists.zip"  # lightweight bundle of *_watchlist.parquet files
 _DEMO_R2_KEY = "demo.zip"  # fixed-key public demo bundle; overwritten on every push-demo
+_GFW_EO_R2_PREFIX = "gfw-eo/"  # SAR + Sentinel-2 parquets; one file per region
+_GFW_EO_REGIONS = ["singapore", "japan", "europe", "blacksea", "middleeast"]
 
 # DuckLake catalog keys — public bucket (root)
 # catalog.duckdb is a fixed-key file overwritten on every push-ducklake-* run.
@@ -685,6 +687,59 @@ def cmd_pull_gdelt(args: argparse.Namespace) -> int:
         tmp_path.unlink(missing_ok=True)
 
     print(f"\nDone. {downloaded / 1_048_576:.1f} MB downloaded to {gdelt_dir}/")
+    return 0
+
+
+def cmd_push_gfw_eo(args: argparse.Namespace) -> int:
+    bucket = os.getenv("S3_BUCKET", _DEFAULT_BUCKET)
+    data_dir = Path(args.data_dir)
+    fs = _build_r2_fs()
+    uploaded = 0
+    missing = []
+    for region in _GFW_EO_REGIONS:
+        local = data_dir / f"{region}_eo_detections.parquet"
+        if not local.exists():
+            missing.append(region)
+            print(f"  [{region}] not found — skipping", flush=True)
+            continue
+        r2_path = f"{bucket}/{_GFW_EO_R2_PREFIX}{region}_eo_detections.parquet"
+        size = _upload_file(fs, local, r2_path)
+        print(f"  [{region}] {size / 1_048_576:.2f} MB → {r2_path}")
+        uploaded += 1
+    if missing:
+        print(f"\n{len(missing)} region(s) missing: {missing}", file=sys.stderr)
+        return 1 if uploaded == 0 else 0
+    print(f"\nDone. {uploaded} parquet(s) pushed to R2.")
+    return 0
+
+
+def cmd_pull_gfw_eo(args: argparse.Namespace) -> int:
+    bucket = os.getenv("S3_BUCKET", _DEFAULT_BUCKET)
+    data_dir = Path(args.data_dir)
+    data_dir.mkdir(parents=True, exist_ok=True)
+    anon = not (os.getenv("AWS_ACCESS_KEY_ID") and os.getenv("AWS_SECRET_ACCESS_KEY"))
+    fs = _build_r2_fs(anonymous=anon)
+    import pyarrow.fs as pafs
+    downloaded = 0
+    missing = []
+    for region in _GFW_EO_REGIONS:
+        r2_path = f"{bucket}/{_GFW_EO_R2_PREFIX}{region}_eo_detections.parquet"
+        local = data_dir / f"{region}_eo_detections.parquet"
+        try:
+            infos = fs.get_file_info([r2_path])
+            if infos[0].type == pafs.FileType.NotFound:
+                raise FileNotFoundError
+        except Exception:
+            missing.append(region)
+            print(f"  [{region}] not in R2 — skipping", flush=True)
+            continue
+        size = _download_file(fs, r2_path, local)
+        print(f"  [{region}] {size / 1_048_576:.2f} MB → {local}")
+        downloaded += 1
+    if missing:
+        print(f"\n{len(missing)} region(s) not in R2 yet: {missing}", file=sys.stderr)
+        return 1 if downloaded == 0 else 0
+    print(f"\nDone. {downloaded} parquet(s) pulled from R2.")
     return 0
 
 
@@ -1657,6 +1712,15 @@ def main() -> int:
     gdelt_pull_p = sub.add_parser("pull-gdelt", help="Download gdelt.lance.zip and extract")
     gdelt_pull_p.add_argument("--data-dir", default=_DEFAULT_DATA_DIR, metavar="DIR")
 
+    push_gfw_p = sub.add_parser(
+        "push-gfw-eo", help="Upload GFW SAR/Sentinel-2 EO parquets to R2"
+    )
+    push_gfw_p.add_argument("--data-dir", default=_DEFAULT_DATA_DIR, metavar="DIR")
+    pull_gfw_p = sub.add_parser(
+        "pull-gfw-eo", help="Download GFW SAR/Sentinel-2 EO parquets from R2"
+    )
+    pull_gfw_p.add_argument("--data-dir", default=_DEFAULT_DATA_DIR, metavar="DIR")
+
     push_sd_p = sub.add_parser("push-sanctions-db", help="Upload public_eval.duckdb to R2")
     push_sd_p.add_argument("--data-dir", default=_DEFAULT_DATA_DIR, metavar="DIR")
     push_sd_p.add_argument("--force", action="store_true")
@@ -1720,6 +1784,8 @@ def main() -> int:
         "pull-ais-parquet": cmd_pull_ais_parquet,
         "push-gdelt": cmd_push_gdelt,
         "pull-gdelt": cmd_pull_gdelt,
+        "push-gfw-eo": cmd_push_gfw_eo,
+        "pull-gfw-eo": cmd_pull_gfw_eo,
         "push-sanctions-db": cmd_push_sanctions_db,
         "pull-sanctions-db": cmd_pull_sanctions_db,
         "push-watchlists": cmd_push_watchlists,
