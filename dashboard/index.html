@@ -170,6 +170,22 @@
     </div>
   </div>
 
+  <div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(480px, 1fr)); margin-bottom: 1.5rem;">
+    <div class="card">
+      <h2>Precision@50 — 30-day trend</h2>
+      <div class="metric-value" id="val-p50-trend">—</div>
+      <div class="metric-sub" id="sub-p50-trend">precision at rank 50</div>
+      <div class="chart-container" id="chart-p50-trend" style="min-height:160px"></div>
+    </div>
+
+    <div class="card">
+      <h2>Known Positives — 30-day trend</h2>
+      <div class="metric-value" id="val-kp-trend">—</div>
+      <div class="metric-sub" id="sub-kp-trend">OFAC-matched watchlist positives</div>
+      <div class="chart-container" id="chart-kp-trend" style="min-height:160px"></div>
+    </div>
+  </div>
+
   <div class="card" style="margin-bottom: 1.5rem;">
     <h2>Daily Run History</h2>
     <table id="history-table">

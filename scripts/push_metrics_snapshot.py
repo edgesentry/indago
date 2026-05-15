@@ -39,7 +39,8 @@ _DEFAULT_ENDPOINT = os.getenv(
 )
 _METRICS_PREFIX = "metrics"
 _INDEX_KEY = f"{_METRICS_PREFIX}/index.json"
-_MAX_HISTORY = 7
+_MAX_HISTORY = 30
+_TREND_PATH = Path("data") / "processed" / "metrics_trend.json"
 
 
 def _processed_dir() -> Path:
@@ -169,7 +170,7 @@ def main() -> None:
     _write_json(cb, bucket, snapshot_key, snap)
     print(f"Uploaded: {snapshot_key}")
 
-    # Update index (newest first, max 7 entries)
+    # Update index (newest first, max 30 entries)
     entries = _read_index(cb, bucket)
     if date_key not in entries:
         entries = [date_key] + entries
@@ -178,9 +179,10 @@ def main() -> None:
     _write_json(cb, bucket, _INDEX_KEY, {"entries": entries, "updated_at_utc": datetime.now(UTC).isoformat()})
     print(f"Updated index: {entries}")
 
-    # Delete entries beyond the 7-day window
+    # Delete entries beyond the 30-day window
     cutoff = datetime.now(UTC) - timedelta(days=_MAX_HISTORY)
-    for entry in entries[_MAX_HISTORY:]:
+    stale = [e for e in entries[_MAX_HISTORY:] if e != date_key]
+    for entry in stale:
         try:
             entry_date = datetime.strptime(entry, "%Y%m%d").replace(tzinfo=UTC)
             if entry_date < cutoff:
@@ -192,6 +194,30 @@ def main() -> None:
                 f"[warn] Skipping invalid index entry (expected YYYYMMDD): {entry!r}",
                 file=sys.stderr,
             )
+
+    # Write metrics_trend.json for notify_metrics.py (prev day + 7-day-ago values)
+    trend: dict = {}
+    # entries[0] is today; entries[1] is yesterday
+    if len(entries) >= 2:
+        try:
+            prev_obj = client.get_object(Bucket=bucket, Key=f"{_METRICS_PREFIX}/{entries[1]}.json")
+            prev_snap = json.loads(prev_obj["Body"].read().decode())
+            trend["prev_p50"] = prev_snap.get("precision_at_50")
+            trend["prev_known_positives"] = prev_snap.get("known_positives")
+            trend["prev_date"] = prev_snap.get("date")
+        except Exception:
+            pass
+    if len(entries) >= 8:
+        try:
+            old_obj = client.get_object(Bucket=bucket, Key=f"{_METRICS_PREFIX}/{entries[7]}.json")
+            old_snap = json.loads(old_obj["Body"].read().decode())
+            trend["p50_7d_ago"] = old_snap.get("precision_at_50")
+            trend["p50_7d_ago_date"] = old_snap.get("date")
+        except Exception:
+            pass
+    _TREND_PATH.parent.mkdir(parents=True, exist_ok=True)
+    _TREND_PATH.write_text(json.dumps(trend, indent=2))
+    print(f"Wrote trend data: {trend}")
 
 
 if __name__ == "__main__":
