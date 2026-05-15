@@ -337,8 +337,8 @@ def test_trend_json_written_with_prev_data(tmp_path, monkeypatch):
     monkeypatch.setattr(sys, "argv", ["push_metrics_snapshot.py", "--date", "2026-05-15"])
     try:
         run_main()
-    except SystemExit:
-        pass
+    except SystemExit as exc:
+        assert exc.code in (0, None)
 
     trend_file = tmp_path / "data" / "processed" / "metrics_trend.json"
     assert trend_file.exists(), "metrics_trend.json was not written"
