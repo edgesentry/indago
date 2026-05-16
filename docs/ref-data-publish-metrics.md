@@ -2,6 +2,8 @@
 
 How to read the **indago data publish** email, R2 daily snapshots, and local backtest artifacts after `data-publish.yml` runs. Metric *definitions* live in [ref-evaluation-metrics.md](ref-evaluation-metrics.md); this doc explains *what each published number means* and when to worry.
 
+> **Live metrics:** Daily publish values change after each `data-publish` run. **Do not copy P@50, recall, or lead-time numbers from this doc** into reports, outreach, or commercial submissions. Use the **`/indago-interpret-metrics`** skill (or `uv run python scripts/fetch_publish_metrics.py --interpret`) for the latest snapshot and interpretation.
+
 ---
 
 ## Where metrics come from
@@ -18,15 +20,17 @@ Public read (no credentials):
 
 ```text
 https://pub-e088008b61ee432b906ef710d52af28c.r2.dev/metrics/index.json
-https://pub-e088008b61ee432b906ef710d52af28c.r2.dev/metrics/20260516.json
+https://pub-e088008b61ee432b906ef710d52af28c.r2.dev/metrics/YYYYMMDD.json
 ```
 
-Fetch locally:
+Fetch locally (preferred over reading stale values in docs):
 
 ```bash
-uv run python scripts/fetch_publish_metrics.py
+uv run python scripts/fetch_publish_metrics.py --interpret
 uv run python scripts/fetch_publish_metrics.py --days 7 --json
 ```
+
+Agent skill: [`.agents/skills/indago-interpret-metrics/`](../.agents/skills/indago-interpret-metrics/SKILL.md) (`/indago-interpret-metrics`).
 
 ---
 
@@ -92,32 +96,18 @@ Contractual / trial gates (Cap Vista): **≥ 0.60** on partner validation set �
 
 ---
 
-## Latest published snapshot (example: 2026-05-16)
+## Latest published snapshot
 
-Fetched from R2 after data-publish run on `main` (ownership_chain + `score/` publish path):
-
-| Metric | 2026-05-16 | 2026-05-15 | 2026-05-11 (7d) |
-|--------|------------|------------|-----------------|
-| Precision@50 (mean) | **0.396** | 0.396 | 0.372 |
-| CI 95% | 0.32 – 0.48 | same | 0.31 – 0.44 |
-| Recall@200 | 1.000 | 1.000 | 1.000 |
-| Known positives | 99 | 99 | 93 |
-| Pre-designation count | 11 | 11 | 10 |
-| Median lead (days) | 22 | 14 | 20 |
-| Mean lead (days) | 18 | 13 | 18 |
-
-**Interpretation:**
-
-- **P@50 stable** day-over-day; **7-day trend up** (+0.024) — healthy.
-- **Recall@200 = 1.0** — all 99 known positives still recovered in top 200 per region.
-- **Lead time median rose** 14 → 22 vs prior day — often cohort mix (which cases enter the 11 pre-designation set), not necessarily worse ranking.
-- Compare to **global** `candidate_watchlist` P@50 ≈ 0.40 when writing external docs.
-
-Re-fetch before acting:
+**Do not maintain a dated metrics table in this doc.** After each publish, fetch and interpret:
 
 ```bash
-uv run python scripts/fetch_publish_metrics.py --interpret
+uv run python scripts/fetch_publish_metrics.py --interpret   # human summary + regression hints
+uv run python scripts/fetch_publish_metrics.py --days 7        # day-over-day table
 ```
+
+Or invoke **`/indago-interpret-metrics`** so an agent runs the same commands and applies the checklist in [metrics-interpretation.md](../.agents/skills/indago-interpret-metrics/references/metrics-interpretation.md).
+
+When writing external copy, also check **global** `validation_metrics.json` / `candidate_watchlist` P@50 (often ~0.01 higher than the email’s regional mean) — the skill doc explains both.
 
 ---
 

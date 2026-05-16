@@ -72,7 +72,7 @@ uv run python scripts/fetch_publish_metrics.py --interpret
 
 - **Definitions**: [docs/ref-evaluation-metrics.md](docs/ref-evaluation-metrics.md)
 - **Interpretation** (email vs global P@50, regression threshold 0.02): [docs/ref-data-publish-metrics.md](docs/ref-data-publish-metrics.md)
-- **Agent skill**: `.agents/skills/indago-interpret-metrics/SKILL.md`
+- **Agent skill**: `.agents/skills/indago-interpret-metrics/SKILL.md` — **fetch latest values here**; do not copy metrics from docs
 
 ## Key design decisions
 

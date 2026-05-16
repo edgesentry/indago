@@ -7,6 +7,14 @@ metadata:
   repo: indago
 ---
 
+## When to use this skill
+
+- After **data-publish** CI completes (email summary).
+- Before updating **commercial**, outreach, or Cap Vista docs that cite P@50, recall, or lead time.
+- When a doc shows a **dated** metrics table — treat it as stale; fetch instead.
+
+**Do not** copy live metrics from `docs/` into submissions. Run this skill (or the commands below) and interpret with [references/metrics-interpretation.md](references/metrics-interpretation.md).
+
 ## Quick fetch (latest from R2)
 
 ```bash
@@ -36,7 +44,7 @@ https://pub-e088008b61ee432b906ef710d52af28c.r2.dev/metrics/YYYYMMDD.json
 1. **P@50 drop &lt; 0.02** day-over-day → noise (e.g. 0.400 → 0.396).
 2. **Recall@200 &lt; 1.0** → at least one known positive fell below rank 200 — investigate region windows.
 3. **skipped_regions** non-empty → partial backtest; do not quote overall metrics as full coverage.
-4. **Two P@50 definitions** — email = mean of 5 regional P@50; Cap Vista docs often use global `candidate_watchlist` (~0.40).
+4. **Two P@50 definitions** — email = mean of 5 regional P@50; Cap Vista docs often use global `candidate_watchlist` (fetch both; they may differ by ~0.00x).
 5. **Contractual gate** ≥ 0.60 is trial/partner labels — not the daily email value.
 
 Full guide: [references/metrics-interpretation.md](references/metrics-interpretation.md) · [docs/ref-data-publish-metrics.md](../../../docs/ref-data-publish-metrics.md)

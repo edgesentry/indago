@@ -1,5 +1,7 @@
 # Metrics interpretation quick reference
 
+**Source of truth for live values:** `fetch_publish_metrics.py` / R2 `metrics/*.json` — not markdown tables in `docs/` or commercial submission files.
+
 ## Regression rules
 
 | Rule | Threshold |
