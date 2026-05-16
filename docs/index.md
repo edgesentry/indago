@@ -45,6 +45,7 @@ Runs daily via GitHub Actions across 5 regions. See [`/indago-run-pipeline`](htt
 
 - [ref-backtesting.md](ref-backtesting.md) — historical evaluation workflow
 - [ref-evaluation-metrics.md](ref-evaluation-metrics.md) — Precision@K, AUROC, acceptance thresholds
+- [ref-data-publish-metrics.md](ref-data-publish-metrics.md) — data-publish email and R2 snapshot interpretation
 - [ref-precision-plan.md](ref-precision-plan.md) — P@50 improvement strategy
 - [ref-prelabel-governance.md](ref-prelabel-governance.md) — analyst pre-label holdout policy
 

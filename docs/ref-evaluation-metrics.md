@@ -2,6 +2,8 @@
 
 This document describes the evaluation framework, metric definitions, acceptance thresholds, and how to reproduce results. Current metric values are produced by the CI pipeline and stored in `data/processed/validation_metrics.json` — do not read specific numbers from this doc.
 
+For **daily data-publish email** and R2 snapshot fields (regional mean P@50 vs global watchlist, regression rules, lead time), see [ref-data-publish-metrics.md](ref-data-publish-metrics.md). Agent skill: `.agents/skills/indago-interpret-metrics/`.
+
 ---
 
 ## Metric Definitions
