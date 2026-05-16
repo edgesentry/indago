@@ -134,6 +134,43 @@ function trendChart(snapshots, { width = 560 } = {}) {
   });
 }
 
+function leadTimeTrendChart(snapshots, { width = 560 } = {}) {
+  const data = snapshots
+    .filter((s) => s.mean_lead_days != null)
+    .map((s) => ({
+      date: new Date(s.date),
+      mean: +s.mean_lead_days,
+      median: s.median_lead_days != null ? +s.median_lead_days : null,
+    }));
+
+  if (data.length === 0) return null;
+
+  const marks = [
+    Plot.lineY(data, { x: "date", y: "mean", stroke: "#bc8cff", strokeWidth: 2 }),
+    Plot.dotY(data, { x: "date", y: "mean", fill: "#bc8cff", r: 3 }),
+  ];
+  if (data.some((d) => d.median != null)) {
+    marks.push(
+      Plot.lineY(data.filter((d) => d.median != null), {
+        x: "date", y: "median", stroke: "#bc8cff", strokeWidth: 1.5, strokeDasharray: "4,3",
+      })
+    );
+  }
+
+  return Plot.plot({
+    width,
+    height: 140,
+    marginLeft: 40,
+    marginRight: 8,
+    marginTop: 8,
+    marginBottom: 28,
+    style: { background: "transparent", color: "#8b949e", fontSize: "11px" },
+    x: { type: "time", label: null, tickFormat: "%m/%d" },
+    y: { label: null, tickFormat: (v) => `${v}d`, ticks: 4 },
+    marks,
+  });
+}
+
 function knownPositivesChart(snapshots, { width = 560 } = {}) {
   const data = snapshots
     .filter((s) => s.known_positives != null)
@@ -322,6 +359,26 @@ async function main() {
   setMetric("val-kp-trend", kpLatest ?? "—");
   setSub("sub-kp-trend", kpDeltaStr || "OFAC-matched watchlist positives");
   mountChart("chart-kp-trend", knownPositivesChart(snapshots));
+
+  // Lead time trend
+  const ltLatest = latest.mean_lead_days;
+  const ltPrev = snapshots.length >= 2 ? snapshots.at(-2)?.mean_lead_days : null;
+  const ltDelta = ltLatest != null && ltPrev != null ? ltLatest - ltPrev : null;
+  const ltDeltaStr = ltDelta != null
+    ? `${ltDelta >= 0 ? "+" : ""}${ltDelta.toFixed(1)}d vs prev day`
+    : "";
+  const medianLatest = latest.median_lead_days;
+  const preDesigCount = latest.pre_designation_count;
+  const p25Latest = latest.p25_lead_days;
+  const p75Latest = latest.p75_lead_days;
+  setMetric("val-lt-trend", ltLatest != null ? `${ltLatest.toFixed(1)}d` : "—");
+  setSub("sub-lt-trend", [
+    ltDeltaStr || "mean lead days",
+    medianLatest != null ? `median ${medianLatest.toFixed(0)}d` : "",
+    p25Latest != null && p75Latest != null ? `p25–p75: ${p25Latest.toFixed(0)}–${p75Latest.toFixed(0)}d` : "",
+    preDesigCount != null ? `${preDesigCount} vessels` : "",
+  ].filter(Boolean).join(" · "));
+  mountChart("chart-lt-trend", leadTimeTrendChart(snapshots));
 
   renderTable([...snapshots].reverse());
 

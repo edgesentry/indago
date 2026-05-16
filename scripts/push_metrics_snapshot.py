@@ -205,6 +205,9 @@ def main() -> None:
             prev_snap = json.loads(prev_obj["Body"].read().decode())
             trend["prev_p50"] = prev_snap.get("precision_at_50")
             trend["prev_known_positives"] = prev_snap.get("known_positives")
+            trend["prev_mean_lead_days"] = prev_snap.get("mean_lead_days")
+            trend["prev_median_lead_days"] = prev_snap.get("median_lead_days")
+            trend["prev_pre_designation_count"] = prev_snap.get("pre_designation_count")
             trend["prev_date"] = prev_snap.get("date")
         except Exception as exc:
             print(
