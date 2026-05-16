@@ -821,15 +821,8 @@ def cmd_push_watchlists(args: argparse.Namespace) -> int:
     data_dir = Path(args.data_dir)
     r2_path = f"{bucket}/{_WATCHLISTS_R2_KEY}"
 
-    # Search both data_dir root and data_dir/score/ (where run_pipeline.py writes them).
-    # Use rglob to find all *_watchlist.parquet recursively; arcname=f.name in the zip
-    # ensures they all extract to the top level of data_dir on pull.
-    seen: set[Path] = set()
-    watchlist_files = []
-    for f in sorted(data_dir.rglob("*_watchlist.parquet")):
-        if f not in seen:
-            seen.add(f)
-            watchlist_files.append(f)
+    # Prefer score/ over flat root when both exist (same rule as push-arktrace).
+    watchlist_files = _resolve_watchlist_paths_for_push(data_dir)
 
     if not watchlist_files:
         print(
@@ -1548,6 +1541,41 @@ _MANIFEST_REGION_TAG: dict[str, str] = {
 }
 
 
+def _resolve_score_artifact(data_dir: Path, name: str) -> Path | None:
+    """Return score/{name} when present, else flat data_dir/{name}."""
+    score_path = data_dir / "score" / name
+    if score_path.exists():
+        return score_path
+    flat_path = data_dir / name
+    if flat_path.exists():
+        return flat_path
+    return None
+
+
+def _resolve_watchlist_paths_for_push(data_dir: Path) -> list[Path]:
+    """Pick one watchlist Parquet per filename; prefer data_dir/score/ over flat root.
+
+    run_pipeline.py writes regional watchlists under score/; pull-watchlists may leave
+    stale copies at the data_dir root. push-arktrace must upload the pipeline output.
+    """
+    by_name: dict[str, list[Path]] = {}
+    for wl_path in data_dir.rglob("*_watchlist.parquet"):
+        by_name.setdefault(wl_path.name, []).append(wl_path)
+
+    score_dir = data_dir / "score"
+    chosen: list[Path] = []
+    for name in sorted(by_name):
+        candidates = by_name[name]
+        in_score = [p for p in candidates if p.parent == score_dir]
+        if in_score:
+            chosen.append(in_score[0])
+        elif len(candidates) == 1:
+            chosen.append(candidates[0])
+        else:
+            chosen.append(sorted(candidates, key=lambda p: len(p.parts))[0])
+    return chosen
+
+
 def _watchlists_missing_ownership_chain(watchlist_paths: list[Path]) -> list[str]:
     """Return watchlist filenames that lack the ownership_chain column (indago#148)."""
     import polars as pl
@@ -1583,21 +1611,21 @@ def cmd_push_arktrace(args: argparse.Namespace) -> int:
     ] = []  # (local, r2_key, register_as, region)
 
     # Region-scoped watchlists: singapore_watchlist.parquet → region tag "singapore"
-    for wl_path in sorted(data_dir.glob("*_watchlist.parquet")):
+    for wl_path in _resolve_watchlist_paths_for_push(data_dir):
         stem = wl_path.stem.replace("_watchlist", "")
         region_tag = _MANIFEST_REGION_TAG.get(stem)
         r2_key = f"score/{wl_path.name}"
         upload_pairs.append((wl_path, r2_key, "watchlist.parquet", region_tag))
 
-    # Shared (non-region) score files
+    # Shared (non-region) score files — prefer score/ subdir when present
     for name, register_as in [
         ("composite_scores.parquet", "composite_scores.parquet"),
         ("causal_effects.parquet", "causal_effects.parquet"),
         ("score_history.parquet", "score_history.parquet"),
         ("validation_metrics.parquet", "validation_metrics.parquet"),
     ]:
-        p = data_dir / name
-        if p.exists():
+        p = _resolve_score_artifact(data_dir, name)
+        if p is not None:
             upload_pairs.append((p, f"score/{name}", register_as, None))
 
     if not upload_pairs:
