@@ -1595,6 +1595,18 @@ def cmd_push_arktrace(args: argparse.Namespace) -> int:
         )
         return 1
 
+    import polars as pl
+
+    watchlist_paths = [p for p, _, register_as, _ in upload_pairs if register_as == "watchlist.parquet"]
+    for wl_path in watchlist_paths:
+        cols = pl.read_parquet(wl_path, n_rows=0).columns
+        if "ownership_chain" not in cols:
+            print(
+                f"[warn] {wl_path.name} missing ownership_chain column — "
+                "arktrace Ownership chain panel will be empty until scoring is re-run (indago#148)",
+                file=sys.stderr,
+            )
+
     total_bytes = 0
     for local_path, r2_key, register_as, region_tag in upload_pairs:
         if not local_path.exists():

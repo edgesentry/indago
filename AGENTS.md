@@ -44,6 +44,16 @@ All buckets: unauthenticated public read. See [docs/ref-r2-buckets.md](docs/ref-
 | Symptom | Owner | Where |
 |---------|-------|-------|
 | Empty arktrace dashboard | indago pipeline not run / R2 not synced | `scripts/sync_r2.py` |
+| arktrace Ownership chain empty | watchlist missing `ownership_chain` column | re-run scoring + `sync_r2.py push-arktrace` |
+
+## arktrace dashboard publish
+
+Watchlists for [arktrace](https://arktrace.edgesentry.io) are **plain Parquet** under `arktrace-public/score/`, not DuckLake.
+
+1. `pipelines/score/watchlist.py` / `compute_composite_scores()` — must include `ownership_chain` (indago#148).
+2. `uv run python scripts/sync_r2.py push-arktrace --data-dir data/processed` — uploads `*_watchlist.parquet` + `manifest.json` / `ducklake_manifest.json`.
+
+Do **not** use `push-ducklake-public` for the browser app; that path is legacy DuckLake catalog storage only.
 | documaris vessel selector empty | `documaris-public` bucket not populated | `scripts/sync_r2.py` |
 | Score regression after model change | Check `check_score_regression.py` output | `scripts/check_score_regression.py` |
 | AIS validation failure | AIS stream or rotation issue | `scripts/validate_ais_upload.py` |
