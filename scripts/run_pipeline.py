@@ -327,7 +327,8 @@ def step_score(region: RegionConfig) -> bool:
         ([sys.executable, "-m", "pipelines.score.mpol_baseline", "--db", region.db_path], "mpol_baseline"),
         ([sys.executable, "-m", "pipelines.score.anomaly", "--db", region.db_path], "anomaly"),
         ([sys.executable, "-m", "pipelines.score.composite", "--db", region.db_path], "composite"),
-        ([sys.executable, "-m", "pipelines.score.watchlist",
+        ([sys.executable, "-c",
+          "from pipelines.score.watchlist import main; main()",
           "--db", region.db_path,
           "--output", watchlist_out], "watchlist"),
     ]
