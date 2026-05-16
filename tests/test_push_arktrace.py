@@ -7,7 +7,6 @@ import json
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-import polars as pl
 import pyarrow as pa
 import pyarrow.parquet as pq
 
