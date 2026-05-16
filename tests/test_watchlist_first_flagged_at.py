@@ -5,7 +5,6 @@ from __future__ import annotations
 from datetime import date
 
 import polars as pl
-import pytest
 
 from pipelines.score.watchlist import _merge_first_flagged_at
 
