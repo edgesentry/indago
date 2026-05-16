@@ -181,7 +181,7 @@ For developers, it's important to note that we implement this directly in NumPy 
 ### Day 14: Validation & Evaluation Metrics (Precision@50)
 How do we know Arktrace actually works? In data science, you can't just trust your results; you have to validate them against **Ground Truth**. Our ground truth is the official historical record of OFAC sanctions designations. If our model identifies a vessel as high-risk *months before* it actually appeared on a sanctions list, we have verified our value.
 
-Our primary metric is **Precision@50**. In a fleet of 5,000 vessels, if an analyst reviews our top 50 candidates, how many will they find are confirmed sanctioned vessels? We currently achieve 0.62 (31 out of 50), which is a 6x "lift" over a random baseline. This is the number that proves our model is an effective "force multiplier" for limited human resources.
+Our primary metric is **Precision@50**. In a fleet of 5,000 vessels, if an analyst reviews our top 50 candidates, how many will they find are confirmed sanctioned vessels? We historically achieved ~0.62 on a full Singapore run (31 out of 50), which is a 6x "lift" over a random baseline. For **current** publish metrics, use `/indago-interpret-metrics` in indago — do not cite 0.62 as today's number. This is the number that proves our model is an effective "force multiplier" for limited human resources.
 
 We also use **Recall@200** and **AUROC**. Recall tells us what percentage of *all* sanctioned vessels we managed to surface. AUROC (Area Under the Receiver Operating Characteristic curve) measures how well our model ranks a "randomly chosen positive" vessel higher than a "randomly chosen negative" one. It is the definitive measure of our model's ranking quality.
 

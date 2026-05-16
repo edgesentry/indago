@@ -25,6 +25,7 @@ English is the single source of truth for all documentation.
 4. **`docs/`** — reference material only (design decisions, data contracts, model specs)
 5. **No duplication** — each fact lives in exactly one place
 6. **No cargo doc territory** — don't duplicate types, fields, or method signatures from code
+7. **No stale live metrics** — do not commit point-in-time P@50, recall, or lead-time values in `docs/` (thresholds and historical blind-run examples are fine). Point readers to **`/indago-interpret-metrics`** or `scripts/fetch_publish_metrics.py --interpret`
 
 ### File naming
 

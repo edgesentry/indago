@@ -55,6 +55,7 @@ nav:
   - Validation:
     - Backtesting: ref-backtesting.md
     - Evaluation Metrics: ref-evaluation-metrics.md
+    - Data Publish Metrics: ref-data-publish-metrics.md
     - Precision Plan: ref-precision-plan.md
     - Pre-Label Governance: ref-prelabel-governance.md
   - Reference:

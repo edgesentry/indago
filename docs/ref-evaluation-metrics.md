@@ -2,6 +2,10 @@
 
 This document describes the evaluation framework, metric definitions, acceptance thresholds, and how to reproduce results. Current metric values are produced by the CI pipeline and stored in `data/processed/validation_metrics.json` — do not read specific numbers from this doc.
 
+For **daily data-publish email** and R2 snapshot fields (regional mean P@50 vs global watchlist, regression rules, lead time), see [ref-data-publish-metrics.md](ref-data-publish-metrics.md).
+
+> **Current P@50 / recall / lead time:** Use **`/indago-interpret-metrics`** or `uv run python scripts/fetch_publish_metrics.py --interpret`. Numbers below are thresholds, historical blind runs, or pedagogical examples — not live publish values.
+
 ---
 
 ## Metric Definitions
@@ -60,9 +64,9 @@ arktrace distinguishes two evaluation modes. These must not be conflated when re
 
 **Why seeded metrics are higher:** The 10 injected vessels (CELINE, ELINE, REX 1, ANHONA, etc.) are confirmed OFAC positives with synthetic AIS positions crafted to produce high anomaly scores. A seeded run guarantees these vessels surface in the top-50, mechanically inflating AUROC, P@50, and Recall.
 
-### Documented Blind Run Results
+### Documented Blind Run Results (historical point-in-time)
 
-Most recent blind evaluation (singapore, 2026-04-14, `validation_metrics.json`):
+Single-region blind run retained for structural-ceiling illustration (singapore, 2026-04-14, `validation_metrics.json`). For **latest multi-region publish metrics**, use `/indago-interpret-metrics` instead of this table:
 
 | Metric | Value | Notes |
 |---|---|---|

@@ -2,6 +2,8 @@
 
 This document explains the two distinct P@50 thresholds used in arktrace, the current baseline, and the steps taken to reach the demonstrated technical ceiling. No code knowledge required.
 
+> **Current daily metrics:** The **0.62** figure in the title is a historical Singapore full-run baseline, not the live data-publish value. Fetch latest P@50, recall, and lead time via **`/indago-interpret-metrics`** or `uv run python scripts/fetch_publish_metrics.py --interpret` in the indago repo.
+
 ---
 
 ## P@50 Threshold Glossary

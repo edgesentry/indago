@@ -26,6 +26,9 @@ Multi-domain OSINT data layer. indago ingests raw signals from maritime, corpora
 | `scripts/run_backtracking.py` | Delayed-label intelligence loop |
 | `scripts/generate_osint_report.py` | OSINT intelligence report generation |
 | `scripts/check_score_regression.py` | Model regression validation |
+| `scripts/push_metrics_snapshot.py` | Daily metrics JSON → `maridb-public/metrics/` |
+| `scripts/notify_metrics.py` | Data-publish summary email |
+| `scripts/fetch_publish_metrics.py` | Fetch latest metrics from public R2 (no credentials) |
 | `config/sanction_regimes.yaml` | Configurable sanction regime definitions |
 | `config/geopolitical_events.json` | Geopolitical filter zones |
 
@@ -58,6 +61,18 @@ Watchlists for [arktrace](https://arktrace.edgesentry.io) are **plain Parquet** 
 3. `uv run python scripts/sync_r2.py push-arktrace --data-dir data/processed` — uploads watchlists (prefers `score/` over stale flat copies from `pull-watchlists`) + `ducklake_manifest.json`.
 
 Do **not** use `push-ducklake-public` for the browser app; that path is legacy DuckLake catalog storage only.
+
+## Data-publish metrics
+
+After `data-publish.yml`, maintainers receive an email and R2 snapshots under `maridb-public/metrics/YYYYMMDD.json` (public mirror: `pub-*.r2.dev/metrics/`).
+
+```bash
+uv run python scripts/fetch_publish_metrics.py --interpret
+```
+
+- **Definitions**: [docs/ref-evaluation-metrics.md](docs/ref-evaluation-metrics.md)
+- **Interpretation** (email vs global P@50, regression threshold 0.02): [docs/ref-data-publish-metrics.md](docs/ref-data-publish-metrics.md)
+- **Agent skill**: `.agents/skills/indago-interpret-metrics/SKILL.md` — **fetch latest values here**; do not copy metrics from docs
 
 ## Key design decisions
 
@@ -100,3 +115,4 @@ npx skills add edgesentry/indago
 | `/indago-sync-r2` | Publishing new Parquet partitions; preparing demo bundles |
 | `/indago-run-osint` | Investigating a flagged vessel; preparing weekly analyst report |
 | `/indago-run-backtrack` | New analyst labels available; rewinding causal reasoning |
+| `/indago-interpret-metrics` | Data-publish email; P@50 deltas; R2 metrics trend |
