@@ -42,7 +42,7 @@ Agent skill: [`indago-interpret-metrics`](https://github.com/edgesentry/indago/b
 |-----------|----------------|-------------|
 | **Precision@50** | `precision_at_50` + CI | **Mean** of per-region P@50 from `run_public_backtest_batch.py` windows; CI = 95% across those 5 regional values (not bootstrap on vessels) |
 | **Recall@200** | `recall_at_200` | Mean regional recall@200 — fraction of known positives appearing in top 200 per region |
-| **Known positives** | `known_positives` | Total labeled OFAC/EU/UN positives in the evaluation manifest (typically 99 multi-region) |
+| **Known positives** | `known_positives` | Total labeled OFAC/EU/UN positives in the evaluation manifest (R2 snapshot) |
 | **vs prev day** | R2 `metrics/YYYYMMDD.json` delta | Day-over-day change in stored snapshot |
 | **7-day trend** | Oldest vs newest in `metrics/index.json` | Rolling comparison (up to 30 entries retained in index) |
 
@@ -71,8 +71,8 @@ Skipped regions (`skipped_regions`) were below `--min-watchlist-size` or missing
 
 | Metric | How computed | Typical value (May 2026) | Use for |
 |--------|--------------|---------------------------|---------|
-| **Email / backtest summary** | Average of **5 regional** P@50 values | ~0.37–0.40 | Daily publish email, `metrics/*.json`, trend |
-| **Global `candidate_watchlist`** | Single ranked list after dedup; top-50 / labeled | ~0.40 | Cap Vista docs, `validation_metrics.json`, arktrace marketing |
+| **Email / backtest summary** | Average of **5 regional** P@50 values | R2 `precision_at_50` | Daily publish email, `metrics/*.json`, trend |
+| **Global `candidate_watchlist`** | Single ranked list after dedup; top-50 / labeled | `validation_metrics.json` | Cap Vista **submission** only |
 
 A gap of **0.00x** between them is normal (≈ one vessel rank swap in top-50). Do **not** call a drop from 0.400 → 0.396 a regression unless it exceeds the rules below.
 
