@@ -178,22 +178,40 @@ def _retrospective(
         if confidence < CONFIDENCE_THRESHOLD:
             continue
 
-        # Estimate the start of the AIS gap detection window
-        last_seen_raw = row.get("last_seen")
-        if last_seen_raw:
+        # Determine detection window start.
+        # Prefer first_flagged_at (stable, set when the vessel first entered the
+        # watchlist) over the legacy last_seen - 30d approximation.  The legacy
+        # calculation breaks for vessels still being actively tracked after
+        # designation: last_seen advances daily, so window_start drifts forward
+        # and lead_days shrinks to near zero. See indago#141.
+        first_flagged_raw = row.get("first_flagged_at")
+        if first_flagged_raw:
             try:
-                if isinstance(last_seen_raw, str):
-                    last_seen = datetime.fromisoformat(
-                        last_seen_raw.replace("Z", "+00:00")
-                    ).replace(tzinfo=UTC)
+                if isinstance(first_flagged_raw, str):
+                    window_start = datetime.fromisoformat(first_flagged_raw).replace(tzinfo=UTC)
                 else:
-                    # polars datetime
-                    last_seen = datetime.fromtimestamp(last_seen_raw.timestamp(), tz=UTC)
-                window_start = last_seen - timedelta(days=30)
+                    window_start = datetime.fromtimestamp(
+                        first_flagged_raw.timestamp(), tz=UTC
+                    )
             except Exception:
+                first_flagged_raw = None
+
+        if not first_flagged_raw:
+            # Legacy fallback: last_seen - 30d
+            last_seen_raw = row.get("last_seen")
+            if last_seen_raw:
+                try:
+                    if isinstance(last_seen_raw, str):
+                        last_seen = datetime.fromisoformat(
+                            last_seen_raw.replace("Z", "+00:00")
+                        ).replace(tzinfo=UTC)
+                    else:
+                        last_seen = datetime.fromtimestamp(last_seen_raw.timestamp(), tz=UTC)
+                    window_start = last_seen - timedelta(days=30)
+                except Exception:
+                    window_start = reference_date - timedelta(days=30)
+            else:
                 window_start = reference_date - timedelta(days=30)
-        else:
-            window_start = reference_date - timedelta(days=30)
 
         # Lead time: positive = model window predates designation (pre-designation detection)
         lead_days = int((desig_date - window_start).days)
