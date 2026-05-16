@@ -69,6 +69,22 @@ NODE_SCHEMAS: dict[str, pa.Schema] = {
             pa.field("name", pa.string()),
         ]
     ),
+    # Extended maritime entities (indago#154) — populated when ingest has port/AIS event data
+    "Port": pa.schema(
+        [
+            pa.field("code", pa.string()),
+            pa.field("name", pa.string()),
+            pa.field("country", pa.string()),
+        ]
+    ),
+    "SanctionEntry": pa.schema(
+        [
+            pa.field("entry_id", pa.string()),
+            pa.field("list", pa.string()),
+            pa.field("date", pa.string()),
+            pa.field("subject_id", pa.string()),
+        ]
+    ),
 }
 
 # Relationship tables: src_id → dst_id plus optional edge properties.
@@ -126,6 +142,21 @@ REL_SCHEMAS: dict[str, pa.Schema] = {
         [
             pa.field("src_id", pa.string()),  # vessel mmsi
             pa.field("dst_id", pa.string()),  # vessel mmsi
+        ]
+    ),
+    "PORT_CALL": pa.schema(
+        [
+            pa.field("src_id", pa.string()),  # vessel mmsi
+            pa.field("dst_id", pa.string()),  # port code
+            pa.field("date", pa.string()),
+        ]
+    ),
+    "AIS_GAP": pa.schema(
+        [
+            pa.field("src_id", pa.string()),  # vessel mmsi
+            pa.field("dst_id", pa.string()),  # event id
+            pa.field("gap_hours", pa.string()),
+            pa.field("date", pa.string()),
         ]
     ),
 }

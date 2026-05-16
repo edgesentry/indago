@@ -300,6 +300,19 @@ def step_features(region: RegionConfig, seed_dummy: bool = False) -> bool:
         ([sys.executable, "-m", "pipelines.features.identity", "--db", region.db_path], "identity"),
         ([sys.executable, "-m", "pipelines.features.trade_mismatch", "--db", region.db_path], "trade_mismatch"),
         ([sys.executable, "-m", "pipelines.features.build_matrix", "--db", region.db_path], "build_matrix"),
+        (
+            [
+                sys.executable,
+                "-m",
+                "pipelines.knowledge_graph",
+                "--db",
+                region.db_path,
+                "--export",
+                "--region",
+                region.name,
+            ],
+            "knowledge_graph",
+        ),
     ]
     for cmd, label in steps:
         result = _run(cmd, env)
