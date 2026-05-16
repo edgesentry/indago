@@ -1548,6 +1548,18 @@ _MANIFEST_REGION_TAG: dict[str, str] = {
 }
 
 
+def _watchlists_missing_ownership_chain(watchlist_paths: list[Path]) -> list[str]:
+    """Return watchlist filenames that lack the ownership_chain column (indago#148)."""
+    import polars as pl
+
+    missing: list[str] = []
+    for wl_path in watchlist_paths:
+        cols = pl.read_parquet(wl_path, n_rows=0).columns
+        if "ownership_chain" not in cols:
+            missing.append(wl_path.name)
+    return missing
+
+
 def cmd_push_arktrace(args: argparse.Namespace) -> int:
     """Copy pipeline outputs from maridb-public → arktrace-public and write manifest.
 
@@ -1594,6 +1606,14 @@ def cmd_push_arktrace(args: argparse.Namespace) -> int:
             file=sys.stderr,
         )
         return 1
+
+    watchlist_paths = [p for p, _, register_as, _ in upload_pairs if register_as == "watchlist.parquet"]
+    for name in _watchlists_missing_ownership_chain(watchlist_paths):
+        print(
+            f"[warn] {name} missing ownership_chain column — "
+            "arktrace Ownership chain panel will be empty until scoring is re-run (indago#148)",
+            file=sys.stderr,
+        )
 
     total_bytes = 0
     for local_path, r2_key, register_as, region_tag in upload_pairs:

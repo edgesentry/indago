@@ -3,6 +3,8 @@ Tests for ownership graph feature engineering — focusing on the DuckDB sanctio
 fallback introduced in issue #231 and the STS hub degree fixes in issue #233.
 """
 
+import json
+
 import duckdb
 import polars as pl
 import pyarrow as pa
@@ -10,8 +12,11 @@ import pyarrow as pa
 from pipelines.features.ownership_graph import (
     MAX_HOPS,
     _apply_direct_sanctions_fallback,
+    _build_vessel_ownership_chain,
+    _chain_export_mmsis,
     _compute_sanctions_distance,
     _compute_sts_hub_degree,
+    _is_vessel_mmsi,
 )
 from pipelines.ingest.graph_store import NODE_SCHEMAS, REL_SCHEMAS
 
@@ -360,3 +365,101 @@ def test_sanctions_distance_priority_closer_wins():
     )
     result = _compute_sanctions_distance(tables)
     assert result.filter(pl.col("mmsi") == "777777777")["sanctions_distance"][0] == 1
+
+
+# ---------------------------------------------------------------------------
+# _build_vessel_ownership_chain / compute_ownership_chains export (indago#148)
+# ---------------------------------------------------------------------------
+
+
+def _empty_rel(name: str) -> pa.Table:
+    return REL_SCHEMAS[name].empty_table()
+
+
+def _make_chain_tables(
+    *,
+    mmsi: str = "111111111",
+    vessel_name: str = "ADMIRAL STAR",
+    use_manager: bool = False,
+    with_parent: bool = True,
+    with_sanction: bool = True,
+) -> dict:
+    vessel_table = pa.table(
+        {"mmsi": [mmsi], "imo": [""], "name": [vessel_name]},
+        schema=NODE_SCHEMAS["Vessel"],
+    )
+    company_table = pa.table(
+        {
+            "id": ["co-op", "co-parent"],
+            "name": ["Seawind Ltd", "Oceanic Holdings"],
+            "country": ["PA", "VG"],
+        },
+        schema=NODE_SCHEMAS["Company"],
+    )
+    owned_by = _empty_rel("OWNED_BY")
+    managed_by = _empty_rel("MANAGED_BY")
+    if use_manager:
+        managed_by = pa.table(
+            {"src_id": [mmsi], "dst_id": ["co-op"], "since": [""], "until": [""]},
+            schema=REL_SCHEMAS["MANAGED_BY"],
+        )
+    else:
+        owned_by = pa.table(
+            {"src_id": [mmsi], "dst_id": ["co-op"], "since": [""], "until": [""]},
+            schema=REL_SCHEMAS["OWNED_BY"],
+        )
+    controlled_by = _empty_rel("CONTROLLED_BY")
+    if with_parent:
+        controlled_by = pa.table(
+            {"src_id": ["co-op"], "dst_id": ["co-parent"]},
+            schema=REL_SCHEMAS["CONTROLLED_BY"],
+        )
+    sanctioned_by = _empty_rel("SANCTIONED_BY")
+    if with_sanction:
+        sanctioned_by = pa.table(
+            {
+                "src_id": ["co-parent"],
+                "dst_id": ["OFAC SDN"],
+                "list": ["OFAC SDN"],
+                "date": ["2024-11-12"],
+            },
+            schema=REL_SCHEMAS["SANCTIONED_BY"],
+        )
+    return {
+        "Vessel": vessel_table,
+        "Company": company_table,
+        "OWNED_BY": owned_by,
+        "MANAGED_BY": managed_by,
+        "CONTROLLED_BY": controlled_by,
+        "SANCTIONED_BY": sanctioned_by,
+    }
+
+
+def test_chain_export_mmsis_includes_direct_sanction_without_vessel_node():
+    tables = {
+        "Vessel": NODE_SCHEMAS["Vessel"].empty_table(),
+        "Company": NODE_SCHEMAS["Company"].empty_table(),
+        "OWNED_BY": _empty_rel("OWNED_BY"),
+        "MANAGED_BY": _empty_rel("MANAGED_BY"),
+        "CONTROLLED_BY": _empty_rel("CONTROLLED_BY"),
+        "SANCTIONED_BY": pa.table(
+            {
+                "src_id": ["273449240"],
+                "dst_id": ["OFAC SDN"],
+                "list": ["OFAC SDN"],
+                "date": ["2024-11-12"],
+            },
+            schema=REL_SCHEMAS["SANCTIONED_BY"],
+        ),
+    }
+    assert "273449240" in _chain_export_mmsis(tables)
+    chain = _build_vessel_ownership_chain("273449240", tables)
+    assert chain[0]["sanctioned"] is True
+    assert _is_vessel_mmsi("273449240")
+
+
+def test_ownership_chain_operator_parent_and_listing():
+    chain = _build_vessel_ownership_chain("111111111", _make_chain_tables())
+    assert [h["kind"] for h in chain] == ["vessel", "company", "company", "sanction"]
+    parsed = json.loads(json.dumps(chain))
+    assert parsed[-1]["kind"] == "sanction"
