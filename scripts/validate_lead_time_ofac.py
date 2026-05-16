@@ -185,18 +185,25 @@ def _retrospective(
         # designation: last_seen advances daily, so window_start drifts forward
         # and lead_days shrinks to near zero. See indago#141.
         first_flagged_raw = row.get("first_flagged_at")
+        window_start = None
         if first_flagged_raw:
             try:
                 if isinstance(first_flagged_raw, str):
-                    window_start = datetime.fromisoformat(first_flagged_raw).replace(tzinfo=UTC)
+                    candidate = datetime.fromisoformat(first_flagged_raw).replace(tzinfo=UTC)
                 else:
-                    window_start = datetime.fromtimestamp(
+                    candidate = datetime.fromtimestamp(
                         first_flagged_raw.timestamp(), tz=UTC
                     )
+                # Only use first_flagged_at when it predates the designation date.
+                # If first_flagged_at >= desig_date the field was initialised after
+                # the vessel was already sanctioned (bootstrap run on 2026-05-16),
+                # so it cannot serve as a pre-designation detection timestamp.
+                if candidate < desig_date:
+                    window_start = candidate
             except Exception:
-                first_flagged_raw = None
+                pass
 
-        if not first_flagged_raw:
+        if window_start is None:
             # Legacy fallback: last_seen - 30d
             last_seen_raw = row.get("last_seen")
             if last_seen_raw:
@@ -413,10 +420,10 @@ def main() -> None:
     n_pre = len(pre_desig)
     lead_days_pre = sorted([r["lead_days"] for r in pre_desig])
     n = len(lead_days_pre)
-    mean_lead = int(sum(lead_days_pre) / n) if n else 0
-    median_lead = lead_days_pre[n // 2] if n else 0
-    p25_lead = lead_days_pre[n // 4] if n else 0
-    p75_lead = lead_days_pre[(3 * n) // 4] if n else 0
+    mean_lead = int(sum(lead_days_pre) / n) if n else None
+    median_lead = lead_days_pre[n // 2] if n else None
+    p25_lead = lead_days_pre[n // 4] if n else None
+    p75_lead = lead_days_pre[(3 * n) // 4] if n else None
     print(f"  Matched to designation dates : {n_matched}")
     print(f"  Pre-designation detections   : {n_pre} / {n_matched}")
     print(f"  Mean lead time (pre-desig)   : {mean_lead} days")

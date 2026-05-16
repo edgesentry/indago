@@ -352,6 +352,35 @@ def test_retrospective_first_flagged_at_invalid_falls_back_to_last_seen():
     assert rows[0]["lead_days"] == pytest.approx(55, abs=1)
 
 
+def test_retrospective_first_flagged_at_after_designation_falls_back():
+    """first_flagged_at >= designation_date means bootstrap init after sanction — fall back to last_seen - 30d.
+
+    This happens when first_flagged_at was set on the first pipeline run that
+    introduced the field (2026-05-16), but the vessel was already designated
+    before that date. Using first_flagged_at would give a negative lead time,
+    so we fall back to last_seen - 30d.
+    """
+    now = datetime.now(UTC)
+    designation_date = now - timedelta(days=30)  # designated 30 days ago
+    # first_flagged_at set to today (bootstrap), which is AFTER designation
+    first_flagged_at = now.strftime("%Y-%m-%d")
+    # last_seen 65 days ago → window_start = last_seen - 30d = 95 days ago → lead = 65d
+    last_seen = (now - timedelta(days=65)).isoformat()
+
+    wl = pl.DataFrame([{
+        **_watchlist_row("bootstrap001", confidence=0.60, last_seen=last_seen),
+        "first_flagged_at": first_flagged_at,
+        "behavioral_deviation_score": 0.5,
+        "graph_risk_score": 0.4,
+    }])
+    rows = _retrospective(wl, {"bootstrap001": designation_date}, reference_date=now)
+
+    assert len(rows) == 1
+    # Must NOT use first_flagged_at (would give -30d); must fall back to last_seen - 30d
+    assert rows[0]["pre_designation"] is True
+    assert rows[0]["lead_days"] == pytest.approx(65, abs=1)
+
+
 def test_percentile_values_correct():
     lead_days = sorted([10, 20, 30, 40, 50, 60, 70, 80])
     n = len(lead_days)
