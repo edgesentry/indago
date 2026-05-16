@@ -1628,6 +1628,16 @@ def cmd_push_arktrace(args: argparse.Namespace) -> int:
         if p is not None:
             upload_pairs.append((p, f"score/{name}", register_as, None))
 
+    # Knowledge graph exports (indago#154): {region}_ownership_graph.parquet
+    score_dir = data_dir / "score"
+    if score_dir.is_dir():
+        for og_path in sorted(score_dir.glob("*_ownership_graph.parquet")):
+            stem = og_path.stem.replace("_ownership_graph", "")
+            region_tag = _MANIFEST_REGION_TAG.get(stem)
+            upload_pairs.append(
+                (og_path, f"score/{og_path.name}", "ownership_graph.parquet", region_tag)
+            )
+
     if not upload_pairs:
         print(
             f"No score Parquets found in {data_dir}. Run the pipeline first.",
