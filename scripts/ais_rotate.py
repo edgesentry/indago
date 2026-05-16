@@ -29,7 +29,7 @@ REGIONS: list[tuple[str, list[float]]] = [
     ("blacksea",     [40,  27,  48,  42]),
     ("europe",       [35, -10,  65,  30]),
     ("middleeast",   [10,  32,  32,  62]),
-    ("persiangulf",  [20,  48,  30,  65]),
+    # ("persiangulf",  [20,  48,  30,  65]),  # disabled: aisstream.io has no coverage here
     ("gulfofguinea", [-5,  -5,  10,  10]),
     ("gulfofaden",   [10,  42,  16,  52]),
     ("gulfofmexico", [18, -98,  31, -80]),
