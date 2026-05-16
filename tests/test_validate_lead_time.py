@@ -7,6 +7,7 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import polars as pl
+import pytest
 
 from scripts.validate_lead_time_ofac import (
     CONFIDENCE_THRESHOLD,
@@ -263,6 +264,92 @@ def test_prospective_sorted_by_confidence_descending():
 # ---------------------------------------------------------------------------
 # p25 / median / p75 computation (inline — mirrors script logic)
 # ---------------------------------------------------------------------------
+
+
+# ---------------------------------------------------------------------------
+# first_flagged_at — stable lead time (indago#141)
+# ---------------------------------------------------------------------------
+
+
+def test_retrospective_uses_first_flagged_at_when_present():
+    """first_flagged_at takes precedence over last_seen - 30d."""
+    now = datetime.now(UTC)
+    # first_flagged_at = 60 days ago; last_seen = yesterday (would give only 29d lead)
+    first_flagged_at = (now - timedelta(days=60)).strftime("%Y-%m-%d")
+    last_seen = (now - timedelta(days=1)).isoformat()
+    designation_date = now - timedelta(days=10)  # 10 days ago
+
+    wl = pl.DataFrame([{
+        **_watchlist_row("111111111", confidence=0.60, last_seen=last_seen),
+        "first_flagged_at": first_flagged_at,
+        "behavioral_deviation_score": 0.5,
+        "graph_risk_score": 0.4,
+    }])
+    rows = _retrospective(wl, {"111111111": designation_date}, reference_date=now)
+
+    assert len(rows) == 1
+    # lead = desig_date - first_flagged_at = (now - 10d) - (now - 60d) = 50d
+    assert rows[0]["lead_days"] == pytest.approx(50, abs=1)
+    assert rows[0]["pre_designation"] is True
+    assert rows[0]["detection_window_start"] == (now - timedelta(days=60)).strftime("%Y-%m-%d")
+
+
+def test_retrospective_lead_time_stable_as_last_seen_advances():
+    """With first_flagged_at, lead time does not shrink as last_seen advances."""
+    now = datetime.now(UTC)
+    designation_date = now - timedelta(days=10)
+    first_flagged_at = (now - timedelta(days=40)).strftime("%Y-%m-%d")
+
+    def _lead(last_seen_offset_days: int) -> int:
+        last_seen = (now - timedelta(days=last_seen_offset_days)).isoformat()
+        wl = pl.DataFrame([{
+            **_watchlist_row("999000001", confidence=0.60, last_seen=last_seen),
+            "first_flagged_at": first_flagged_at,
+            "behavioral_deviation_score": 0.5,
+            "graph_risk_score": 0.4,
+        }])
+        rows = _retrospective(wl, {"999000001": designation_date}, reference_date=now)
+        return rows[0]["lead_days"]
+
+    # Lead should be the same regardless of when last_seen was updated
+    assert _lead(30) == _lead(5) == _lead(1)
+
+
+def test_retrospective_falls_back_to_last_seen_when_no_first_flagged_at():
+    """Without first_flagged_at, legacy last_seen - 30d fallback is used."""
+    now = datetime.now(UTC)
+    last_seen = (now - timedelta(days=5)).isoformat()
+    designation_date = now + timedelta(days=20)  # future designation
+
+    wl = pl.DataFrame([{
+        **_watchlist_row("888111222", confidence=0.60, last_seen=last_seen),
+        "behavioral_deviation_score": 0.5,
+        "graph_risk_score": 0.4,
+    }])
+    rows = _retrospective(wl, {"888111222": designation_date}, reference_date=now)
+
+    assert len(rows) == 1
+    # window_start = last_seen - 30d = now - 35d; lead = (now + 20d) - (now - 35d) = 55d
+    assert rows[0]["lead_days"] == pytest.approx(55, abs=1)
+
+
+def test_retrospective_first_flagged_at_invalid_falls_back_to_last_seen():
+    """Unparseable first_flagged_at triggers fallback to last_seen - 30d."""
+    now = datetime.now(UTC)
+    last_seen = (now - timedelta(days=5)).isoformat()
+    designation_date = now + timedelta(days=20)
+
+    wl = pl.DataFrame([{
+        **_watchlist_row("777333444", confidence=0.60, last_seen=last_seen),
+        "first_flagged_at": "not-a-date",
+        "behavioral_deviation_score": 0.5,
+        "graph_risk_score": 0.4,
+    }])
+    rows = _retrospective(wl, {"777333444": designation_date}, reference_date=now)
+
+    assert len(rows) == 1
+    # Fallback: window_start = last_seen - 30d → lead ≈ 55d
+    assert rows[0]["lead_days"] == pytest.approx(55, abs=1)
 
 
 def test_percentile_values_correct():
