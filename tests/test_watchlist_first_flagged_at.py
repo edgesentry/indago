@@ -120,6 +120,45 @@ def test_multiple_existing_vessels_all_preserved(tmp_path):
         assert row["first_flagged_at"] == expected_date, f"{mmsi} date drifted"
 
 
+# ---------------------------------------------------------------------------
+# Bootstrap override (_FIRST_FLAGGED_OVERRIDES)
+# ---------------------------------------------------------------------------
+
+
+def test_bootstrap_override_applied_on_first_run(tmp_path):
+    """Known vessels get correct first_flagged_at even on bootstrap (no existing file)."""
+    df = _make_new_df(["314189000"])  # Bangus
+    result = _merge_first_flagged_at(df, str(tmp_path / "missing.parquet"))
+    assert result["first_flagged_at"][0] == "2026-03-21"
+
+
+def test_bootstrap_override_corrects_bootstrap_date(tmp_path):
+    """Bootstrap date (2026-05-16) is replaced with the authoritative value."""
+    existing_path = _make_existing(tmp_path, [
+        {"mmsi": "314189000", "confidence": 0.5, "first_flagged_at": "2026-05-16"},
+    ])
+    df = _make_new_df(["314189000"])
+    result = _merge_first_flagged_at(df, existing_path)
+    assert result["first_flagged_at"][0] == "2026-03-21"
+
+
+def test_bootstrap_override_does_not_overwrite_earlier_date(tmp_path):
+    """If first_flagged_at is already earlier than bootstrap, keep it."""
+    existing_path = _make_existing(tmp_path, [
+        {"mmsi": "314189000", "confidence": 0.5, "first_flagged_at": "2026-02-01"},
+    ])
+    df = _make_new_df(["314189000"])
+    result = _merge_first_flagged_at(df, existing_path)
+    assert result["first_flagged_at"][0] == "2026-02-01"
+
+
+def test_bootstrap_override_non_override_vessel_unaffected(tmp_path):
+    """Vessels not in the override dict get today's date as normal."""
+    df = _make_new_df(["999999999"])
+    result = _merge_first_flagged_at(df, str(tmp_path / "missing.parquet"))
+    assert result["first_flagged_at"][0] == date.today().isoformat()
+
+
 def test_output_row_count_matches_input(tmp_path):
     existing_path = _make_existing(tmp_path, [
         {"mmsi": "aaa", "confidence": 0.5, "first_flagged_at": "2026-01-01"},
