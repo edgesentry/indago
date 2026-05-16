@@ -9,6 +9,8 @@
 
 Detection logic remains in `pipelines.features.ownership_graph`; arktrace is visualization-only.
 
+Graph storage uses **`lance`** columnar datasets (`graph_store.py`), not the PyPI **`lance-graph`** package (removed as unused direct dependency).
+
 ## CLI
 
 ```bash
