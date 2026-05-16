@@ -73,3 +73,7 @@ def main() -> None:
     watchlist = build_candidate_watchlist(args.db, existing_path=args.output)
     write_candidate_watchlist(watchlist, args.output)
     print(f"Watchlist rows written: {watchlist.height}")
+
+
+if __name__ == "__main__":
+    main()
