@@ -30,7 +30,7 @@ uv run python scripts/fetch_publish_metrics.py --interpret
 uv run python scripts/fetch_publish_metrics.py --days 7 --json
 ```
 
-Agent skill: [`.agents/skills/indago-interpret-metrics/`](../.agents/skills/indago-interpret-metrics/SKILL.md) (`/indago-interpret-metrics`).
+Agent skill: [`indago-interpret-metrics`](https://github.com/edgesentry/indago/blob/main/.agents/skills/indago-interpret-metrics/SKILL.md) (`/indago-interpret-metrics`).
 
 ---
 
@@ -105,7 +105,7 @@ uv run python scripts/fetch_publish_metrics.py --interpret   # human summary + r
 uv run python scripts/fetch_publish_metrics.py --days 7        # day-over-day table
 ```
 
-Or invoke **`/indago-interpret-metrics`** so an agent runs the same commands and applies the checklist in [metrics-interpretation.md](../.agents/skills/indago-interpret-metrics/references/metrics-interpretation.md).
+Or invoke **`/indago-interpret-metrics`** so an agent runs the same commands and applies the checklist in [metrics-interpretation.md](https://github.com/edgesentry/indago/blob/main/.agents/skills/indago-interpret-metrics/references/metrics-interpretation.md).
 
 When writing external copy, also check **global** `validation_metrics.json` / `candidate_watchlist` P@50 (often ~0.01 higher than the email’s regional mean) — the skill doc explains both.
 
