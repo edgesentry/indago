@@ -136,6 +136,8 @@ uv run python scripts/sync_r2.py push-ais-parquet \
 gh workflow run gdelt-ingest.yml --repo edgesentry/indago
 ```
 
+**Watchlist wiring (indago#156):** After `pull-gdelt`, `compute_composite_scores()` calls `query_gdelt_context()` per vessel (cached by flag + name) and writes `gdelt_context_json` / `gdelt_event_count` on the watchlist Parquet. GDELT does **not** change composite scores — citations only. OSINT email (`scripts/generate_osint_report.py`) renders a GDELT section from those columns.
+
 ---
 
 ## Stage 4 — CI pipeline (data-publish.yml, daily 01:00 UTC)

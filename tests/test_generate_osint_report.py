@@ -1,3 +1,5 @@
+import json
+
 import polars as pl
 import pytest
 
@@ -129,6 +131,37 @@ def test_report_is_string(sample_watchlist):
 
 def test_report_header(sample_watchlist):
     assert "[OSINT Check] Watchlist" in generate_report(sample_watchlist, top_n=50)
+
+
+def test_report_includes_gdelt_section():
+    events = [
+        {
+            "event_id": "1",
+            "event_date": "20260401",
+            "description": "Iran reduced relations with Cambodia in Strait of Malacca.",
+            "source_url": "http://example.com/news",
+            "actor1_country": "IR",
+            "actor2_country": "KH",
+            "event_root_code": "16",
+        }
+    ]
+    df = pl.DataFrame(
+        {
+            "mmsi": ["111111111"],
+            "imo": ["IMO111"],
+            "vessel_name": ["ALPHA"],
+            "vessel_type": ["Tanker"],
+            "flag": ["IR"],
+            "confidence": [0.9],
+            "sanctions_distance": [1],
+            "gdelt_context_json": [json.dumps(events)],
+            "gdelt_event_count": [1],
+        }
+    )
+    report = generate_report(df, top_n=10)
+    assert "## GDELT geopolitical context" in report
+    assert "Strait of Malacca" in report
+    assert "http://example.com/news" in report
 
 
 def test_sanctioned_section_count(sample_watchlist):
