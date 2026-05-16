@@ -1,6 +1,8 @@
 import json
+from unittest.mock import patch
 
 import duckdb
+import polars as pl
 
 from pipelines.score.anomaly import ANOMALY_FEATURE_COLUMNS, load_feature_frame, score_anomalies
 from pipelines.score.composite import FEATURE_VALUE_COLUMNS, compute_composite_scores
@@ -161,6 +163,67 @@ def test_composite_and_watchlist_output(tmp_db, tmp_path):
     output_path = tmp_path / "candidate_watchlist.parquet"
     write_candidate_watchlist(watchlist, str(output_path))
     assert output_path.exists()
+
+
+def test_composite_scores_include_ownership_chain_when_graph_export_succeeds(tmp_db):
+    """ownership_chain column is joined from compute_ownership_chains (indago#148)."""
+    _seed_scoring_data(tmp_db)
+    chain_json = json.dumps(
+        [
+            {
+                "hop": 0,
+                "kind": "vessel",
+                "name": "ALPHA",
+                "country": "",
+                "sanctioned": False,
+                "relation": "vessel",
+            }
+        ]
+    )
+    chains_df = pl.DataFrame(
+        {
+            "mmsi": ["111111111", "222222222"],
+            "ownership_chain": [chain_json, None],
+        }
+    )
+
+    with patch(
+        "pipelines.features.ownership_graph.compute_ownership_chains",
+        return_value=chains_df,
+    ):
+        composite = compute_composite_scores(tmp_db)
+
+    assert "ownership_chain" in composite.columns
+    row = composite.filter(pl.col("mmsi") == "111111111").row(0, named=True)
+    assert row["ownership_chain"] == chain_json
+    assert json.loads(row["ownership_chain"])[0]["name"] == "ALPHA"
+    assert composite.filter(pl.col("mmsi") == "222222222")["ownership_chain"][0] is None
+
+
+def test_watchlist_parquet_written_with_ownership_chain_column(tmp_db, tmp_path):
+    _seed_scoring_data(tmp_db)
+    chains_df = pl.DataFrame(
+        {
+            "mmsi": ["111111111"],
+            "ownership_chain": [
+                json.dumps([{"hop": 0, "kind": "vessel", "name": "ALPHA", "sanctioned": True}])
+            ],
+        }
+    )
+
+    with patch(
+        "pipelines.features.ownership_graph.compute_ownership_chains",
+        return_value=chains_df,
+    ):
+        watchlist = build_candidate_watchlist(tmp_db)
+
+    assert "ownership_chain" in watchlist.columns
+    out = tmp_path / "candidate_watchlist.parquet"
+    write_candidate_watchlist(watchlist, str(out))
+    cols = pl.read_parquet(out, n_rows=0).columns
+    assert "ownership_chain" in cols
+    saved = pl.read_parquet(out).filter(pl.col("mmsi") == "111111111")
+    assert saved["ownership_chain"][0] is not None
 
 
 # ---------------------------------------------------------------------------
