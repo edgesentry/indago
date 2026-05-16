@@ -67,18 +67,25 @@ maridb-public/
 
 ## arktrace-public partition layout
 
-Populated by R2-to-R2 copy from `maridb-public` after validation.
+Populated by `scripts/sync_r2.py push-arktrace` after `data-publish` scoring (not a direct maridb-public mirror).
 
 ```
 arktrace-public/
-  watchlist/
+  ducklake_manifest.json       # legacy name; lists score/*.parquet for the SPA
+  manifest.json                # canonical manifest (same contents)
+  score/
+    candidate_watchlist.parquet
     singapore_watchlist.parquet
     japansea_watchlist.parquet
-  features/
-    vessel_features.parquet
-  ais-summaries/
-    vessel_id=IMO{7digits}/summary.parquet
+    europe_watchlist.parquet
+    blacksea_watchlist.parquet
+    middleeast_watchlist.parquet
+    composite_scores.parquet
+    causal_effects.parquet
+    score_history.parquet
 ```
+
+Watchlist Parquet includes `ownership_chain` (JSON hop list) when the ownership graph has edges for that MMSI. `push-arktrace` uploads from `data/processed/score/` when present (pipeline output), not stale copies at `data/processed/` root left by `pull-watchlists`.
 
 ## documaris-public partition layout
 

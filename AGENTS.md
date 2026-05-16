@@ -43,20 +43,21 @@ All buckets: unauthenticated public read. See [docs/ref-r2-buckets.md](docs/ref-
 
 | Symptom | Owner | Where |
 |---------|-------|-------|
-| Empty arktrace dashboard | indago pipeline not run / R2 not synced | `scripts/sync_r2.py` |
-| arktrace Ownership chain empty | watchlist missing `ownership_chain` column | re-run scoring + `sync_r2.py push-arktrace` |
+| Empty arktrace dashboard | indago pipeline not run / R2 not synced | `scripts/sync_r2.py push-arktrace` |
+| arktrace Ownership chain empty | watchlist missing `ownership_chain` column or stale root copy uploaded | Re-run scoring, then `push-arktrace` (prefers `data/processed/score/` over flat root) |
+| documaris vessel selector empty | `documaris-public` bucket not populated | `scripts/sync_r2.py` |
+| Score regression after model change | Check `check_score_regression.py` output | `scripts/check_score_regression.py` |
+| AIS validation failure | AIS stream or rotation issue | `scripts/validate_ais_upload.py` |
 
 ## arktrace dashboard publish
 
 Watchlists for [arktrace](https://arktrace.edgesentry.io) are **plain Parquet** under `arktrace-public/score/`, not DuckLake.
 
-1. `pipelines/score/watchlist.py` / `compute_composite_scores()` — must include `ownership_chain` (indago#148).
-2. `uv run python scripts/sync_r2.py push-arktrace --data-dir data/processed` — uploads `*_watchlist.parquet` + `manifest.json` / `ducklake_manifest.json`.
+1. `pipelines/score/watchlist.py` / `compute_composite_scores()` — must include `ownership_chain`.
+2. `run_pipeline.py` writes regional watchlists to `data/processed/score/{region}_watchlist.parquet`.
+3. `uv run python scripts/sync_r2.py push-arktrace --data-dir data/processed` — uploads watchlists (prefers `score/` over stale flat copies from `pull-watchlists`) + `ducklake_manifest.json`.
 
 Do **not** use `push-ducklake-public` for the browser app; that path is legacy DuckLake catalog storage only.
-| documaris vessel selector empty | `documaris-public` bucket not populated | `scripts/sync_r2.py` |
-| Score regression after model change | Check `check_score_regression.py` output | `scripts/check_score_regression.py` |
-| AIS validation failure | AIS stream or rotation issue | `scripts/validate_ais_upload.py` |
 
 ## Key design decisions
 
