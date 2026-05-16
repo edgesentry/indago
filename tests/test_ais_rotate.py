@@ -12,7 +12,7 @@ from scripts.ais_rotate import REGIONS, rotate
 # ---------------------------------------------------------------------------
 
 def test_regions_count():
-    assert len(REGIONS) == 10
+    assert len(REGIONS) == 9  # persiangulf disabled (aisstream.io has no coverage)
 
 
 def test_regions_unique_names():
