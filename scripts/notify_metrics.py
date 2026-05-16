@@ -31,6 +31,7 @@ from pathlib import Path
 
 _REPORT_PATH = Path("data/processed/backtest_public_integration_summary.json")
 _TREND_PATH = Path("data/processed/metrics_trend.json")
+_LEAD_TIME_PATH = Path("data/processed/lead_time_report.json")
 _REGRESSION_THRESHOLD = 0.01  # #507: lowered from 0.02 — catches single-step drops like 0.27→0.26
 
 
@@ -59,6 +60,14 @@ def _load_trend() -> dict:
     """Return trend data from metrics_trend.json written by push_metrics_snapshot.py."""
     try:
         return json.loads(_TREND_PATH.read_text())
+    except Exception:
+        return {}
+
+
+def _load_lead_time() -> dict:
+    """Return lead time report produced by validate_lead_time_ofac.py."""
+    try:
+        return json.loads(_LEAD_TIME_PATH.read_text())
     except Exception:
         return {}
 
@@ -92,6 +101,15 @@ def _format_body(
     trend_prev_p50: float | None = prev_p50 or trend.get("prev_p50")
     trend_p50_7d: float | None = trend.get("p50_7d_ago")
     trend_prev_positives: int | None = trend.get("prev_known_positives")
+
+    lead = _load_lead_time()
+    mean_lead: float | None = lead.get("mean_lead_days")
+    median_lead: float | None = lead.get("median_lead_days")
+    p25_lead: float | None = lead.get("p25_lead_days")
+    p75_lead: float | None = lead.get("p75_lead_days")
+    pre_desig_count: int | None = lead.get("pre_designation_count")
+    prev_mean_lead: float | None = trend.get("prev_mean_lead_days")
+    prev_median_lead: float | None = trend.get("prev_median_lead_days")
 
     regression = trend_prev_p50 is not None and (trend_prev_p50 - p50) > _REGRESSION_THRESHOLD
     improvement = trend_prev_p50 is not None and (p50 - trend_prev_p50) > _REGRESSION_THRESHOLD
@@ -160,6 +178,33 @@ def _format_body(
     <td></td>
   </tr>
 </table>
+
+{f"""
+<h3>Lead Time — Pre-Designation Detection</h3>
+<table border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse">
+  <tr><th>Metric</th><th>Value</th><th>vs prev day</th></tr>
+  <tr>
+    <td>Pre-designation detections</td>
+    <td><strong>{pre_desig_count if pre_desig_count is not None else "—"}</strong></td>
+    <td></td>
+  </tr>
+  <tr>
+    <td>Mean lead time</td>
+    <td><strong>{f"{mean_lead:.1f} days" if mean_lead is not None else "—"}</strong></td>
+    <td>{_delta_str(mean_lead, prev_mean_lead, ".1f") if mean_lead is not None else ""}</td>
+  </tr>
+  <tr>
+    <td>Median lead time</td>
+    <td>{f"{median_lead:.1f} days" if median_lead is not None else "—"}</td>
+    <td>{_delta_str(median_lead, prev_median_lead, ".1f") if median_lead is not None else ""}</td>
+  </tr>
+  <tr>
+    <td>p25 / p75</td>
+    <td>{f"{p25_lead:.0f} / {p75_lead:.0f} days" if p25_lead is not None and p75_lead is not None else "—"}</td>
+    <td></td>
+  </tr>
+</table>
+""" if pre_desig_count is not None or mean_lead is not None else ""}
 
 <h3>Per-Region Coverage</h3>
 <table border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse">
