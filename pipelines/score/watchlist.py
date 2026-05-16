@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import argparse
 import os
-from datetime import date, timezone
+from datetime import date
 
 import polars as pl
 from dotenv import load_dotenv
