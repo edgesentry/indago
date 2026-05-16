@@ -200,6 +200,32 @@ def test_composite_scores_include_ownership_chain_when_graph_export_succeeds(tmp
     assert composite.filter(pl.col("mmsi") == "222222222")["ownership_chain"][0] is None
 
 
+@patch(
+    "pipelines.ingest.gdelt.query_gdelt_context",
+    return_value=[
+        {
+            "event_id": "1",
+            "event_date": "20260401",
+            "description": "IR conflict event",
+            "source_url": "http://example.com",
+            "actor1_country": "IR",
+            "actor2_country": "KH",
+            "event_root_code": "16",
+        }
+    ],
+)
+def test_composite_includes_gdelt_columns_without_changing_confidence(mock_query, tmp_db):
+    _seed_scoring_data(tmp_db)
+    with_gdelt = compute_composite_scores(tmp_db)
+    without = compute_composite_scores(tmp_db, skip_gdelt=True)
+    assert "gdelt_context_json" in with_gdelt.columns
+    assert "gdelt_event_count" in with_gdelt.columns
+    assert with_gdelt["confidence"].to_list() == without["confidence"].to_list()
+    ir_row = with_gdelt.filter(pl.col("mmsi") == "111111111")
+    assert ir_row["gdelt_event_count"][0] >= 1
+    assert ir_row["gdelt_context_json"][0] is not None
+
+
 def test_watchlist_parquet_written_with_ownership_chain_column(tmp_db, tmp_path):
     _seed_scoring_data(tmp_db)
     chains_df = pl.DataFrame(

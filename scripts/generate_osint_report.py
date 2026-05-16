@@ -36,6 +36,7 @@ GITHUB_REPOSITORY Injected automatically by GitHub Actions
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import smtplib
 import sys
@@ -199,6 +200,45 @@ def _ofac_url(name: str) -> str:
     return f"https://sanctionssearch.ofac.treas.gov/?q={q}"
 
 
+def _parse_gdelt_context(raw: object) -> list[dict]:
+    """Parse ``gdelt_context_json`` from watchlist parquet (indago#156)."""
+    if raw is None or raw == "":
+        return []
+    if isinstance(raw, list):
+        return raw
+    try:
+        parsed = json.loads(str(raw))
+        return parsed if isinstance(parsed, list) else []
+    except json.JSONDecodeError:
+        return []
+
+
+def _gdelt_report_lines(rows: list[dict], max_vessels: int = 10) -> list[str]:
+    """Markdown bullets for vessels with GDELT context in the top-N list."""
+    lines: list[str] = []
+    shown = 0
+    for r in rows:
+        if shown >= max_vessels:
+            break
+        events = _parse_gdelt_context(r.get("gdelt_context_json"))
+        if not events:
+            continue
+        shown += 1
+        label = r.get("_name") if r.get("_name") and r.get("_name") != "—" else r.get("_mmsi", "")
+        lines.append(f"### {label} (`{r.get('_mmsi', '')}`)")
+        for ev in events[:2]:
+            desc = str(ev.get("description") or "")[:240]
+            url = str(ev.get("source_url") or "").strip()
+            if url:
+                lines.append(f"- {desc} ([source]({url}))")
+            else:
+                lines.append(f"- {desc}")
+        lines.append("")
+    if shown == 0:
+        lines.append("_No GDELT matches in top-N (gdelt.lance absent or no FTS hits)._")
+    return lines
+
+
 def _resolve_watchlist_path(cli_path: str | None) -> Path:
     if cli_path:
         return Path(cli_path).resolve()
@@ -302,12 +342,20 @@ def generate_report(df: pl.DataFrame, top_n: int) -> str:
             f"| {sd_str} | {links} |"
         )
 
+    lines += [
+        "",
+        "## GDELT geopolitical context",
+        "",
+        *_gdelt_report_lines(rows),
+    ]
+
     header = [
         f"# [OSINT Check] Watchlist — {today}",
         "",
         f"Top-{top_n} candidates from `candidate_watchlist.parquet`.",
         "Analysts: click links to verify on MarineTraffic / VesselFinder / OFAC.",
         "Stateless MMSIs (⚠) have unallocated ITU MID prefixes — likely spoofed identity.",
+        "GDELT citations are context only — they do not change model scores.",
         "",
     ]
     return "\n".join(header + lines) + "\n"

@@ -496,6 +496,10 @@ def compute_composite_scores(
     geo_filter_path: str | None = None,
     auto_calibrate: bool = False,
     propagation_path: str | None = None,
+    gdelt_lance_path: str | None = None,
+    skip_gdelt: bool = False,
+    gdelt_top_n: int = 3,
+    gdelt_days_window: int = 90,
 ) -> pl.DataFrame:
     if auto_calibrate:
         print("Auto-calibrating graph risk weight using C3 causal model...")
@@ -600,6 +604,23 @@ def compute_composite_scores(
         print(f"Warning: ownership_chain export skipped ({exc})")
         scored = scored.with_columns(pl.lit(None, dtype=pl.Utf8).alias("ownership_chain"))
 
+    from pipelines.score.gdelt_enrichment import enrich_watchlist_gdelt
+
+    try:
+        scored = enrich_watchlist_gdelt(
+            scored,
+            lance_path=gdelt_lance_path,
+            n=gdelt_top_n,
+            days_window=gdelt_days_window,
+            skip_gdelt=skip_gdelt,
+        )
+    except Exception as exc:
+        print(f"Warning: GDELT context enrichment skipped ({exc})")
+        scored = scored.with_columns(
+            pl.lit(None, dtype=pl.Utf8).alias("gdelt_context_json"),
+            pl.lit(0, dtype=pl.Int32).alias("gdelt_event_count"),
+        )
+
     return scored.select(
         [
             "mmsi",
@@ -624,6 +645,8 @@ def compute_composite_scores(
             "owner_changes_2y",
             "sanctions_distance",
             "ownership_chain",
+            "gdelt_context_json",
+            "gdelt_event_count",
             "shared_address_centrality",
             "sts_hub_degree",
             "cluster_label",
