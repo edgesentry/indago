@@ -9,6 +9,8 @@
 
 Detection logic remains in `pipelines.features.ownership_graph`; arktrace is visualization-only.
 
+**Ownership edges in CI:** After sanctions ingest, `pipelines.ingest.equasis_ownership` builds `ownership_chains.csv` from [`config/equasis/ownership_seed.csv`](../config/equasis/ownership_seed.csv) (see [`config/equasis/README.md`](../config/equasis/README.md)), then `vessel_registry --equasis-csv` adds `MANAGED_BY` / `OWNED_BY` to the Lance graph. `compute_composite_scores()` embeds per-MMSI paths into watchlist `ownership_chain` for arktrace.
+
 Graph storage uses **`lance`** columnar datasets (`graph_store.py`), not the PyPI **`lance-graph`** package (removed as unused direct dependency).
 
 ## CLI
@@ -46,5 +48,8 @@ Uploaded by `scripts/sync_r2.py push-arktrace` to `arktrace-public/score/{region
 
 ## Related
 
+- [config/equasis/README.md](../config/equasis/README.md) — manual seed cadence (no MMSI list in prose)
 - [ref-pipeline.md](ref-pipeline.md) — pipeline orchestration
+- [ref-pipeline-catalog.md](ref-pipeline-catalog.md) — data-publish includes Equasis ownership step
 - [ref-r2-buckets.md](ref-r2-buckets.md) — `ownership/graph.parquet` layout
+- [arktrace ownership chain UI](https://github.com/edgesentry/arktrace/blob/main/docs/ref-ownership-chain-ui.md)
