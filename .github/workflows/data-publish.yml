@@ -145,8 +145,13 @@ jobs:
           path: data/processed/score
           merge-multiple: true
 
-      - name: Verify regional watchlists
+      - name: Normalize and verify regional watchlists
         run: |
+          mkdir -p data/processed/score
+          shopt -s nullglob
+          for f in *_watchlist.parquet; do
+            mv -v "$f" data/processed/score/
+          done
           missing=0
           for stem in singapore japansea blacksea middleeast europe; do
             f="data/processed/score/${stem}_watchlist.parquet"

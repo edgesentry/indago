@@ -57,12 +57,23 @@ _REGION_STEM: dict[str, str] = {
 WATCHLIST_BY_REGION: frozenset[str] = frozenset(_REGION_STEM)
 
 
-def _get_watchlist_path(region: str) -> Path:
-    """Resolve watchlist path at runtime so score/ is checked after the pipeline writes it."""
+def _watchlist_candidates(region: str) -> list[Path]:
+    """Paths to check for a regional watchlist (pipeline, R2 pull, CI artifact layouts)."""
     stem = _REGION_STEM.get(region, region)
-    score_path = _data_dir / "score" / f"{stem}_watchlist.parquet"
-    flat_path = _data_dir / f"{stem}_watchlist.parquet"
-    return score_path if score_path.exists() else flat_path
+    name = f"{stem}_watchlist.parquet"
+    return [
+        _data_dir / "score" / name,
+        _data_dir / name,
+        Path.cwd() / name,
+    ]
+
+
+def _get_watchlist_path(region: str) -> Path:
+    """Return the first existing watchlist path, or the canonical score/ path for errors."""
+    for path in _watchlist_candidates(region):
+        if path.is_file():
+            return path
+    return _watchlist_candidates(region)[0]
 
 
 def _run_pipeline_for_region(
@@ -346,9 +357,10 @@ def main() -> None:
     label_counts: dict[str, int] = {}
     for region in regions:
         watchlist_path = _get_watchlist_path(region).resolve()
-        if not watchlist_path.exists():
+        if not watchlist_path.is_file():
+            tried = "\n".join(f"  - {p}" for p in _watchlist_candidates(region))
             print(
-                f"[error] {region}: watchlist not found at {watchlist_path}\n"
+                f"[error] {region}: watchlist not found. Tried:\n{tried}\n"
                 "  Run the pipeline first or pull watchlists from R2:\n"
                 "  uv run python scripts/sync_r2.py pull-watchlists",
                 flush=True,
