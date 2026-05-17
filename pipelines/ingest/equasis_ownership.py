@@ -15,7 +15,6 @@ from __future__ import annotations
 import argparse
 import csv
 import json
-import os
 from pathlib import Path
 
 import duckdb
