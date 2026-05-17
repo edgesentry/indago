@@ -49,6 +49,7 @@ nav:
   - Operations:
     - Pipeline Overview: ref-pipeline.md
     - Pipeline Catalog: ref-pipeline-catalog.md
+    - Knowledge Graph: ref-knowledge-graph.md
     - Regional Playbooks: ref-regional-playbooks.md
     - R2 Buckets: ref-r2-buckets.md
     - R2 Data Layout: ref-r2-data-layout.md

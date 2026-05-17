@@ -274,12 +274,16 @@ pipeline locally.
 ### Pipeline Steps
 
 1. Pull custom feeds from `arktrace-private-capvista` → `_inputs/custom_feeds/` (`continue-on-error`).
-2. Run `run_public_backtest_batch.py` for all 5 regions in seed mode — custom feeds are ingested at step 5 of the 11-step pipeline.
-3. `sync_r2.py push --keep 1` — zip all region artifacts, upload to `arktrace-public`, delete previous generation.
-4. `sync_r2.py push-demo` — overwrite `demo.zip` (lightweight bundle for quick developer setup).
-5. `sync_r2.py push-sanctions-db --force` — upload `public_eval.duckdb`.
-6. Lead time validation (`validate_lead_time_ofac.py`).
-7. Metrics email notification (`notify_metrics.py`).
+2. Optional: `sync_r2.py pull-equasis-ownership` — cache prior `ownership_chains.csv`; otherwise build from [`config/equasis/ownership_seed.csv`](https://github.com/edgesentry/indago/blob/main/config/equasis/ownership_seed.csv) via `equasis_ownership` after sanctions ingest.
+3. Regional pipeline (11-step): sanctions load → `equasis_ownership` → `vessel_registry --equasis-csv` → features (`ownership_graph`) → composite score (embeds `ownership_chain`) → regional watchlist Parquet.
+4. Run `run_public_backtest_batch.py` for all 5 regions in seed mode — custom feeds are ingested during the pipeline run.
+5. `sync_r2.py push-arktrace` — upload `score/*_watchlist.parquet` (with `ownership_chain` when graph edges exist).
+6. `sync_r2.py push-equasis-ownership` (Singapore job) — publish built CSV for reuse on next run.
+7. `sync_r2.py push --keep 1` — zip all region artifacts, upload generation bundle, delete previous generation.
+8. `sync_r2.py push-demo` — overwrite `demo.zip` (lightweight bundle for quick developer setup).
+9. `sync_r2.py push-sanctions-db --force` — upload `public_eval.duckdb`.
+10. Lead time validation (`validate_lead_time_ofac.py`).
+11. Metrics snapshot + email (`push_metrics_snapshot.py`, `notify_metrics.py`) — see [ref-data-publish-metrics.md](ref-data-publish-metrics.md); do not copy P@50 into git docs.
 
 ### Expected Outputs
 

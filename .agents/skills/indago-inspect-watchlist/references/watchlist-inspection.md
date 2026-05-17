@@ -12,16 +12,18 @@
 
 If `ownership_chain` column is missing, re-run scoring after indago#148 and `push-arktrace`.
 
-## Demo MMSI search
+## Demo vessel search (do not hardcode MMSI in docs)
 
 **Multi-hop ownership (ideal for C1 video shot 3):**
 
 ```bash
 uv run python .agents/skills/indago-inspect-watchlist/scripts/inspect_watchlist.py \
-  --sanctions-distance 1 2 --min-chain-hops 2 --limit 20
+  --min-chain-hops 2 --limit 20
 ```
 
-When `Demo-ready: 0`, use Feature attribution (SHAP) instead, or narrate direct sanction (distance 0, one node).
+After Equasis seed in CI, many designated vessels show `sanctions_distance = 0` with `chain_hops >= 2` (vessel → operator → listing). The script’s `Demo-ready (distance 1–2, chain_hops >= 2)` filter may be zero — use `--min-chain-hops 2` instead.
+
+When no multi-hop rows exist, use Feature attribution (SHAP) or expand `config/equasis/ownership_seed.csv`.
 
 **Single vessel deep-dive:**
 

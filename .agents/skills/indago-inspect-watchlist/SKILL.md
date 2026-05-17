@@ -10,7 +10,7 @@ metadata:
 ## When to use this skill
 
 - After **data-publish** — confirm watchlists landed on R2 and columns look right.
-- Before **arktrace** demo / Cap Vista video — find MMSIs with `sanctions_distance` 1–2 and multi-hop `ownership_chain`.
+- Before **arktrace** demo / Cap Vista video — run `--min-chain-hops 2` and pick an MMSI from output (do not rely on a fixed ID in docs).
 - When a vessel shows only one Ownership chain row in the UI — inspect Parquet, not guess.
 
 **Related:** `/indago-interpret-metrics` (P@50 / recall) · `/indago-sync-r2` (upload) · `/indago-run-osint` (analyst report).

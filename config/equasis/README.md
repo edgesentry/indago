@@ -26,27 +26,16 @@ Curated vessel → company links for `vessel_registry --equasis-csv`. Company na
 2. Add one CSV line: `mmsi`, `imo`, `vessel_name`, optional `owner_name`, `manager_name`, `parent_owner_name`.
 3. Confirm the company string resolves on OpenSanctions (sanctioned company, not PSC-only records).
 4. Open a PR; after merge, run **Actions → data-publish** (`workflow_dispatch`) or wait for the weekly schedule.
-5. Verify:
+5. Verify (pick MMSI from output — do not assume a fixed demo vessel):
 
 ```bash
 uv run python -m pipelines.ingest.equasis_ownership --db data/processed/ais/singapore.duckdb
 uv run python .agents/skills/indago-inspect-watchlist/scripts/inspect_watchlist.py \
-  --sanctions-distance 1 2 --min-chain-hops 2
+  --min-chain-hops 2 --limit 20
 ```
 
-## Seed coverage (2026-05)
+## Seed rows
 
-| MMSI | Vessel | `manager_name` / `owner_name` | Notes |
-|------|--------|-------------------------------|--------|
-| 314189000 | Bangus | Costin Shipping Limited (owner) | C1 case study; OFAC 2026-04-24 |
-| 352179000 | Horae | Fleet Tanqo Private Limited | C1 |
-| 352001906 | Anaya | Fleet Tanqo Private Limited | C1 |
-| 352002243 | Anika | Anika Lines Inc. | C1 |
-| 352001849 | Bellaris | Nardie International S.A. | C1 |
-| 352001907 | Versa | Fleet Tanqo Private Limited | C1 |
-| 312171000 | ANHONA | Harry Victor Ship Management | Manager hop demo |
-| 457133000 | PIONEER 92 | Logos Marine Pte. Ltd. | Arktrace test case |
-| 273449240 | DOBRYNYA | Rosnefteflot | Direct sanction + operator |
-| 273312060 | SCF ENTERPRISE | Sovcomflot | Direct sanction + operator |
+Curated rows live in **`ownership_seed.csv`** in this directory. Row count and MMSI list change over time — read the CSV and `tests/test_equasis_ownership.py` (`EXPECTED_SEED_MMSIS`) rather than duplicating identifiers in docs.
 
 `parent_owner_name` is optional; when set and resolved, `vessel_registry` emits `CONTROLLED_BY` for a third graph hop.
