@@ -116,3 +116,4 @@ npx skills add edgesentry/indago
 | `/indago-run-osint` | Investigating a flagged vessel; preparing weekly analyst report |
 | `/indago-run-backtrack` | New analyst labels available; rewinding causal reasoning |
 | `/indago-interpret-metrics` | Data-publish email; P@50 deltas; R2 metrics trend |
+| `/indago-inspect-watchlist` | Latest R2 watchlists; sanctions_distance; ownership_chain; demo MMSI search |

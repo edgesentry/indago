@@ -51,4 +51,4 @@ Full guide: [references/metrics-interpretation.md](references/metrics-interpreta
 
 ## Analyst UI
 
-Watchlist, SHAP, ownership chain: [arktrace.edgesentry.io](https://arktrace.edgesentry.io) — not stored in `metrics/*.json`.
+Watchlist, SHAP, ownership chain: [arktrace.edgesentry.io](https://arktrace.edgesentry.io) — not stored in `metrics/*.json`. Inspect Parquet on R2 with **`/indago-inspect-watchlist`** (`.agents/skills/indago-inspect-watchlist/scripts/inspect_watchlist.py`).
