@@ -40,8 +40,13 @@ _MARIDB_DATA = Path(
     os.getenv("MARIDB_DATA_DIR") or os.getenv("DATA_DIR")
     or (Path.home() / ".maridb" / "data" / "processed")
 )
+_REPO_ROOT = Path(__file__).resolve().parents[1]
 _DB_DIR = _MARIDB_DATA / "ais"
 _DOWNLOADS_DIR = _MARIDB_DATA.parent / "downloads" / "ais"
+_EQUASIS_CSV = Path(
+    os.getenv("EQUASIS_OWNERSHIP_CSV", str(_MARIDB_DATA / "equasis" / "ownership_chains.csv"))
+)
+_EQUASIS_SEED = _REPO_ROOT / "config" / "equasis" / "ownership_seed.csv"
 
 
 def _db(stem: str) -> str:
@@ -265,6 +270,30 @@ def _load_ais_from_parquet(region: RegionConfig) -> int:
     return rows
 
 
+def _ensure_equasis_ownership_csv(db_path: str) -> Path | None:
+    """Build or return Equasis ownership CSV for vessel_registry (indago#169)."""
+    explicit = os.getenv("EQUASIS_OWNERSHIP_CSV")
+    if explicit and Path(explicit).is_file():
+        return Path(explicit)
+    if _EQUASIS_CSV.is_file() and _EQUASIS_CSV.stat().st_size > 0:
+        return _EQUASIS_CSV
+    if not _EQUASIS_SEED.is_file():
+        logger.warning("  ⚠ equasis: no seed at %s — skipping ownership edges", _EQUASIS_SEED)
+        return None
+    from pipelines.ingest.equasis_ownership import build_ownership_csv
+
+    try:
+        n = build_ownership_csv(db_path, seed_path=_EQUASIS_SEED, output_path=_EQUASIS_CSV)
+    except Exception as exc:
+        logger.warning("  ⚠ equasis: build failed (%s)", exc)
+        return None
+    if n <= 0:
+        logger.warning("  ⚠ equasis: 0 ownership rows resolved from seed")
+        return None
+    logger.info("  ✓ equasis: %d ownership rows → %s", n, _EQUASIS_CSV.name)
+    return _EQUASIS_CSV
+
+
 def step_ingest(region: RegionConfig) -> bool:
     logger.info("[1/4] Ingest — AIS, vessel registry, sanctions")
     env = {"DB_PATH": region.db_path, "MARIDB_REGION": region.name}
@@ -275,9 +304,20 @@ def step_ingest(region: RegionConfig) -> bool:
     steps = [
         ([sys.executable, "-m", "pipelines.ingest.schema", "--db", region.db_path], "schema"),
         ([sys.executable, "-m", "pipelines.ingest.sanctions", "--db", region.db_path], "sanctions"),
-        ([sys.executable, "-m", "pipelines.ingest.vessel_registry", "--db", region.db_path], "vessel_registry"),
     ]
     for cmd, label in steps:
+        result = _run(cmd, env)
+        if result.returncode != 0:
+            _fail(f"{label}: {result.stderr.strip().splitlines()[-1] if result.stderr.strip() else 'error'}")
+            return False
+        _ok(label)
+
+    equasis_csv = _ensure_equasis_ownership_csv(region.db_path)
+    vr_cmd = [sys.executable, "-m", "pipelines.ingest.vessel_registry", "--db", region.db_path]
+    if equasis_csv:
+        vr_cmd.extend(["--equasis-csv", str(equasis_csv)])
+    steps_after = [(vr_cmd, "vessel_registry")]
+    for cmd, label in steps_after:
         result = _run(cmd, env)
         if result.returncode != 0:
             _fail(f"{label}: {result.stderr.strip().splitlines()[-1] if result.stderr.strip() else 'error'}")

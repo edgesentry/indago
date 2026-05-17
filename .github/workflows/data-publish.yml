@@ -95,6 +95,8 @@ jobs:
             --data-dir data/downloads
           uv run python scripts/sync_r2.py pull-gfw-eo \
             || echo "::warning::pull-gfw-eo skipped or failed (non-fatal)"
+          uv run python scripts/sync_r2.py pull-equasis-ownership \
+            || echo "::warning::pull-equasis-ownership skipped (will build from seed)"
 
       - name: Run pipeline
         run: |
@@ -102,6 +104,19 @@ jobs:
             --region ${{ matrix.pipeline_region }} \
             --non-interactive \
             --skip-gdelt
+
+      - name: Push Equasis ownership CSV to R2 (once per workflow)
+        if: matrix.r2_region == 'singapore'
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: auto
+        run: |
+          if [ -f data/processed/equasis/ownership_chains.csv ]; then
+            uv run python scripts/sync_r2.py push-equasis-ownership
+          else
+            echo "::warning::ownership_chains.csv not built — skip push-equasis-ownership"
+          fi
 
       - name: Upload region artifacts
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4

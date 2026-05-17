@@ -156,6 +156,7 @@ _LATEST_KEY = "latest"  # plain-text pointer to newest timestamp
 _GDELT_R2_KEY = "gdelt.lance.zip"  # single zip for gdelt
 _SANCTIONS_DB_R2_KEY = "public_eval.duckdb"  # OpenSanctions DB; separate from rotation zip
 _WATCHLISTS_R2_KEY = "watchlists.zip"  # lightweight bundle of *_watchlist.parquet files
+_EQUASIS_OWNERSHIP_R2_KEY = "equasis/ownership_chains.csv"  # global ownership seed output (indago#169)
 _DEMO_R2_KEY = "demo.zip"  # fixed-key public demo bundle; overwritten on every push-demo
 _GFW_EO_R2_PREFIX = "gfw-eo/"  # SAR + Sentinel-2 parquets; one file per region
 _GFW_EO_REGIONS = ["singapore", "japan", "europe", "blacksea", "middleeast"]
@@ -890,6 +891,49 @@ def cmd_pull_watchlists(args: argparse.Namespace) -> int:
         tmp_path.unlink(missing_ok=True)
 
     print(f"Done. {downloaded / 1_048_576:.2f} MB downloaded.")
+    return 0
+
+
+def cmd_push_equasis_ownership(args: argparse.Namespace) -> int:
+    """Upload data/processed/equasis/ownership_chains.csv to maridb-public (indago#169)."""
+    bucket = os.getenv("S3_BUCKET", _DEFAULT_BUCKET)
+    data_dir = Path(args.data_dir)
+    local = data_dir / "equasis" / "ownership_chains.csv"
+    if not local.is_file():
+        print(f"No {local} — run pipeline or build_equasis first.", file=sys.stderr)
+        return 1
+    fs = _build_r2_fs()
+    r2_path = f"{bucket}/{_EQUASIS_OWNERSHIP_R2_KEY}"
+    print(f"Uploading {local.name} ({local.stat().st_size} B) → {r2_path} ...")
+    _upload_file(fs, local, r2_path)
+    print(f"Done. Public: {_PUBLIC_BASE_URL}/{_EQUASIS_OWNERSHIP_R2_KEY}")
+    return 0
+
+
+def cmd_pull_equasis_ownership(args: argparse.Namespace) -> int:
+    """Download equasis/ownership_chains.csv into data/processed/equasis/."""
+    bucket = os.getenv("S3_BUCKET", _DEFAULT_BUCKET)
+    data_dir = Path(args.data_dir)
+    dest = data_dir / "equasis" / "ownership_chains.csv"
+    r2_path = f"{bucket}/{_EQUASIS_OWNERSHIP_R2_KEY}"
+    anon = not (os.getenv("AWS_ACCESS_KEY_ID") and os.getenv("AWS_SECRET_ACCESS_KEY"))
+    fs = _build_r2_fs(anonymous=anon)
+    import pyarrow.fs as pafs
+
+    try:
+        infos = fs.get_file_info([r2_path])
+        if infos[0].type == pafs.FileType.NotFound:
+            raise FileNotFoundError
+    except Exception:
+        print(
+            f"No {_EQUASIS_OWNERSHIP_R2_KEY} on R2. Build locally or run pipeline with seed.",
+            file=sys.stderr,
+        )
+        return 1
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    print(f"Downloading {_EQUASIS_OWNERSHIP_R2_KEY} → {dest} ...")
+    _download_file(fs, r2_path, dest)
+    print(f"Done. {dest.stat().st_size} B")
     return 0
 
 
@@ -1793,6 +1837,17 @@ def main() -> int:
     pull_wl_p = sub.add_parser("pull-watchlists", help="Download watchlists.zip and extract")
     pull_wl_p.add_argument("--data-dir", default=_DEFAULT_DATA_DIR, metavar="DIR")
 
+    push_eq_p = sub.add_parser(
+        "push-equasis-ownership",
+        help="Upload equasis/ownership_chains.csv to maridb-public",
+    )
+    push_eq_p.add_argument("--data-dir", default=_DEFAULT_DATA_DIR, metavar="DIR")
+    pull_eq_p = sub.add_parser(
+        "pull-equasis-ownership",
+        help="Download equasis/ownership_chains.csv from maridb-public",
+    )
+    pull_eq_p.add_argument("--data-dir", default=_DEFAULT_DATA_DIR, metavar="DIR")
+
     push_demo_p = sub.add_parser("push-demo", help="Upload demo bundle to R2")
     push_demo_p.add_argument("--data-dir", default=_DEFAULT_DATA_DIR, metavar="DIR")
     push_demo_p.add_argument("--force", action="store_true")
@@ -1831,6 +1886,7 @@ def main() -> int:
         "pull-gdelt",
         "pull-sanctions-db",
         "pull-watchlists",
+        "pull-equasis-ownership",
     )
     if not _check_env(require_credentials=not read_only):
         return 1
@@ -1848,6 +1904,8 @@ def main() -> int:
         "pull-sanctions-db": cmd_pull_sanctions_db,
         "push-watchlists": cmd_push_watchlists,
         "pull-watchlists": cmd_pull_watchlists,
+        "push-equasis-ownership": cmd_push_equasis_ownership,
+        "pull-equasis-ownership": cmd_pull_equasis_ownership,
         "push-demo": cmd_push_demo,
         "pull-demo": cmd_pull_demo,
         "push-ducklake-public": cmd_push_ducklake_public,
