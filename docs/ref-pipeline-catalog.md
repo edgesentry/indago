@@ -274,7 +274,7 @@ pipeline locally.
 ### Pipeline Steps
 
 1. Pull custom feeds from `arktrace-private-capvista` → `_inputs/custom_feeds/` (`continue-on-error`).
-2. Optional: `sync_r2.py pull-equasis-ownership` — cache prior `ownership_chains.csv`; otherwise build from [`config/equasis/ownership_seed.csv`](../config/equasis/ownership_seed.csv) via `equasis_ownership` after sanctions ingest.
+2. Optional: `sync_r2.py pull-equasis-ownership` — cache prior `ownership_chains.csv`; otherwise build from [`config/equasis/ownership_seed.csv`](https://github.com/edgesentry/indago/blob/main/config/equasis/ownership_seed.csv) via `equasis_ownership` after sanctions ingest.
 3. Regional pipeline (11-step): sanctions load → `equasis_ownership` → `vessel_registry --equasis-csv` → features (`ownership_graph`) → composite score (embeds `ownership_chain`) → regional watchlist Parquet.
 4. Run `run_public_backtest_batch.py` for all 5 regions in seed mode — custom feeds are ingested during the pipeline run.
 5. `sync_r2.py push-arktrace` — upload `score/*_watchlist.parquet` (with `ownership_chain` when graph edges exist).

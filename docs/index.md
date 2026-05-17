@@ -35,7 +35,7 @@ Runs daily via GitHub Actions across 5 regions. See [`/indago-run-pipeline`](htt
 
 ## Operations
 
-- [config/equasis/README.md](../config/equasis/README.md) — Equasis ownership seed → graph edges (indago#169)
+- [config/equasis/README.md](https://github.com/edgesentry/indago/blob/main/config/equasis/README.md) — Equasis ownership seed → graph edges (indago#169)
 - [ref-knowledge-graph.md](ref-knowledge-graph.md) — sanctions path query + `ownership_chain` export
 - [ref-pipeline.md](ref-pipeline.md) — pipeline overview and data flow
 - [ref-pipeline-catalog.md](ref-pipeline-catalog.md) — 8 pipeline types and when to use each
