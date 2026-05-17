@@ -136,12 +136,33 @@ jobs:
       - name: Install dependencies
         run: uv sync --all-extras
 
+      # upload-artifact strips the common ancestor (score/), so each zip contains
+      # bare *_watchlist.parquet files — extract directly into score/.
       - name: Download region pipeline artifacts
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093  # v4
         with:
           pattern: pipeline-*
-          path: .
+          path: data/processed/score
           merge-multiple: true
+
+      - name: Normalize and verify regional watchlists
+        run: |
+          mkdir -p data/processed/score
+          shopt -s nullglob
+          for f in *_watchlist.parquet; do
+            mv -v "$f" data/processed/score/
+          done
+          missing=0
+          for stem in singapore japansea blacksea middleeast europe; do
+            f="data/processed/score/${stem}_watchlist.parquet"
+            if [ -f "$f" ]; then
+              echo "  ✓ $f"
+            else
+              echo "::error::missing $f"
+              missing=1
+            fi
+          done
+          exit $missing
 
       - name: Run backtest (skip pipeline, use fresh watchlists)
         run: |
