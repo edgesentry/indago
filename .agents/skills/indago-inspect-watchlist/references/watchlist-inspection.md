@@ -17,7 +17,7 @@ If `ownership_chain` column is missing, re-run scoring after indago#148 and `pus
 **Multi-hop ownership (ideal for C1 video shot 3):**
 
 ```bash
-uv run python .agents/skills/indago-inspect-watchlist/inspect_watchlist.py \
+uv run python .agents/skills/indago-inspect-watchlist/scripts/inspect_watchlist.py \
   --sanctions-distance 1 2 --min-chain-hops 2 --limit 20
 ```
 
@@ -26,7 +26,7 @@ When `Demo-ready: 0`, use Feature attribution (SHAP) instead, or narrate direct 
 **Single vessel deep-dive:**
 
 ```bash
-uv run python .agents/skills/indago-inspect-watchlist/inspect_watchlist.py --mmsi <MMSI>
+uv run python .agents/skills/indago-inspect-watchlist/scripts/inspect_watchlist.py --mmsi <MMSI>
 ```
 
 ## Manual curl (no Python)
@@ -41,7 +41,7 @@ Regions published by data-publish: `singapore`, `japansea`, `europe`, `blacksea`
 ## Local after pipeline
 
 ```bash
-uv run python .agents/skills/indago-inspect-watchlist/inspect_watchlist.py --source local
+uv run python .agents/skills/indago-inspect-watchlist/scripts/inspect_watchlist.py --source local
 ```
 
 Prefer `data/processed/score/*_watchlist.parquet` over stale flat copies at `data/processed/` root.

@@ -17,25 +17,25 @@ metadata:
 
 ## CLI (humans and agents)
 
-Run from the **indago repo root**. Same entry point for terminal use and agent invocation:
+Run from the **indago repo root**. Entry point: [scripts/inspect_watchlist.py](scripts/inspect_watchlist.py).
 
 ```bash
-uv run python .agents/skills/indago-inspect-watchlist/inspect_watchlist.py
-uv run python .agents/skills/indago-inspect-watchlist/inspect_watchlist.py --mmsi 352001906
-uv run python .agents/skills/indago-inspect-watchlist/inspect_watchlist.py --sanctions-distance 1 2 --min-chain-hops 2
-uv run python .agents/skills/indago-inspect-watchlist/inspect_watchlist.py --json --limit 50
+uv run python .agents/skills/indago-inspect-watchlist/scripts/inspect_watchlist.py
+uv run python .agents/skills/indago-inspect-watchlist/scripts/inspect_watchlist.py --mmsi 352001906
+uv run python .agents/skills/indago-inspect-watchlist/scripts/inspect_watchlist.py --sanctions-distance 1 2 --min-chain-hops 2
+uv run python .agents/skills/indago-inspect-watchlist/scripts/inspect_watchlist.py --json --limit 50
 ```
 
 Cache downloads for repeat runs:
 
 ```bash
-uv run python .agents/skills/indago-inspect-watchlist/inspect_watchlist.py --cache-dir /tmp/arktrace-wl
+uv run python .agents/skills/indago-inspect-watchlist/scripts/inspect_watchlist.py --cache-dir /tmp/arktrace-wl
 ```
 
 Pull maridb-public zip (CI backtest bundle), then inspect locally:
 
 ```bash
-uv run python .agents/skills/indago-inspect-watchlist/inspect_watchlist.py --pull --source local
+uv run python .agents/skills/indago-inspect-watchlist/scripts/inspect_watchlist.py --pull --source local
 ```
 
 ## Where watchlists live on R2

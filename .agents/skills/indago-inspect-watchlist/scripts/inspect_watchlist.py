@@ -6,11 +6,11 @@ or reads local paths after ``sync_r2.py pull-watchlists``.
 
 Usage (from indago repo root)
 -----
-    uv run python .agents/skills/indago-inspect-watchlist/inspect_watchlist.py
-    uv run python .agents/skills/indago-inspect-watchlist/inspect_watchlist.py --pull
-    uv run python .agents/skills/indago-inspect-watchlist/inspect_watchlist.py \\
+    uv run python .agents/skills/indago-inspect-watchlist/scripts/inspect_watchlist.py
+    uv run python .agents/skills/indago-inspect-watchlist/scripts/inspect_watchlist.py --pull
+    uv run python .agents/skills/indago-inspect-watchlist/scripts/inspect_watchlist.py \\
         --sanctions-distance 1 2 --min-chain-hops 2
-    uv run python .agents/skills/indago-inspect-watchlist/inspect_watchlist.py --mmsi 352001906
+    uv run python .agents/skills/indago-inspect-watchlist/scripts/inspect_watchlist.py --mmsi 352001906
 """
 from __future__ import annotations
 
@@ -24,8 +24,8 @@ from pathlib import Path
 
 import polars as pl
 
-_SKILL_DIR = Path(__file__).resolve().parent
-_REPO_ROOT = _SKILL_DIR.parents[2]
+_SKILL_ROOT = Path(__file__).resolve().parent.parent
+_REPO_ROOT = _SKILL_ROOT.parents[2]
 
 _ARKTRACE_PUBLIC_BASE = "https://arktrace-public.edgesentry.io"
 _DEFAULT_REGIONS = ("singapore", "japansea", "europe", "blacksea", "middleeast")
