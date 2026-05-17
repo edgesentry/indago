@@ -8,7 +8,6 @@ from unittest.mock import MagicMock, patch
 import numpy as np
 import pyarrow as pa
 import pyarrow.parquet as pq
-import pytest
 
 import scripts.hull_embed as hull_embed
 from pipelines.features.hull_fingerprint import EMBEDDING_DIM
