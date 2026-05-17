@@ -4,14 +4,13 @@
 Fetches the latest arktrace-public score/*_watchlist.parquet files (no credentials),
 or reads local paths after ``sync_r2.py pull-watchlists``.
 
-Usage
+Usage (from indago repo root)
 -----
-    uv run python scripts/inspect_watchlist.py
-    uv run python scripts/inspect_watchlist.py --pull
-    uv run python scripts/inspect_watchlist.py --sanctions-distance 1 2 --min-chain-hops 2
-    uv run python scripts/inspect_watchlist.py --mmsi 352001906
-    uv run python scripts/inspect_watchlist.py --source local --data-dir data/processed
-    uv run python scripts/inspect_watchlist.py --json
+    uv run python .agents/skills/indago-inspect-watchlist/inspect_watchlist.py
+    uv run python .agents/skills/indago-inspect-watchlist/inspect_watchlist.py --pull
+    uv run python .agents/skills/indago-inspect-watchlist/inspect_watchlist.py \\
+        --sanctions-distance 1 2 --min-chain-hops 2
+    uv run python .agents/skills/indago-inspect-watchlist/inspect_watchlist.py --mmsi 352001906
 """
 from __future__ import annotations
 
@@ -25,9 +24,12 @@ from pathlib import Path
 
 import polars as pl
 
+_SKILL_DIR = Path(__file__).resolve().parent
+_REPO_ROOT = _SKILL_DIR.parents[2]
+
 _ARKTRACE_PUBLIC_BASE = "https://arktrace-public.edgesentry.io"
-_MARIDB_PUBLIC_BASE = "https://maridb-public.edgesentry.io"
 _DEFAULT_REGIONS = ("singapore", "japansea", "europe", "blacksea", "middleeast")
+_SYNC_R2 = _REPO_ROOT / "scripts" / "sync_r2.py"
 
 
 def _get_json(url: str) -> dict:
@@ -201,7 +203,7 @@ def main() -> int:
     parser.add_argument(
         "--data-dir",
         type=Path,
-        default=Path("data/processed"),
+        default=_REPO_ROOT / "data/processed",
         help="Local data root (for --source local or --pull output)",
     )
     parser.add_argument(
@@ -243,15 +245,17 @@ def main() -> int:
     if args.pull:
         import subprocess
 
+        if not _SYNC_R2.is_file():
+            raise SystemExit(f"sync_r2.py not found at {_SYNC_R2} (run from indago repo root)")
         cmd = [
             sys.executable,
-            str(Path(__file__).resolve().parent / "sync_r2.py"),
+            str(_SYNC_R2),
             "pull-watchlists",
             "--data-dir",
             str(args.data_dir),
         ]
         print("Running:", " ".join(cmd), file=sys.stderr)
-        subprocess.run(cmd, check=True)
+        subprocess.run(cmd, check=True, cwd=_REPO_ROOT)
 
     regions = tuple(args.regions)
 
@@ -262,7 +266,7 @@ def main() -> int:
         if not local:
             raise SystemExit(
                 f"No *_watchlist.parquet under {args.data_dir}. "
-                "Run pipeline or: uv run python scripts/sync_r2.py pull-watchlists"
+                f"Run pipeline or: uv run python {_SYNC_R2} pull-watchlists"
             )
         paths = []
         for p in local:
@@ -310,7 +314,6 @@ def main() -> int:
         else:
             print(filtered)
 
-    # Demo-candidate hint
     demo = df.filter(
         pl.col("sanctions_distance").is_in([1, 2]) & (pl.col("chain_hops") >= 2)
     )

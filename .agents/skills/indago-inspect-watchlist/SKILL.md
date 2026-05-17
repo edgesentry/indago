@@ -2,7 +2,7 @@
 name: indago-inspect-watchlist
 description: Download and inspect the latest regional watchlists on R2 (arktrace-public or maridb-public). Use when finding demo MMSIs, checking sanctions_distance and ownership_chain, or verifying data-publish output before arktrace smoke tests.
 license: Apache-2.0
-compatibility: Requires Python >=3.12 and uv; network for public R2 URLs
+compatibility: Requires Python >=3.12 and uv; network for public R2 URLs; run from indago repo root
 metadata:
   repo: indago
 ---
@@ -15,27 +15,27 @@ metadata:
 
 **Related:** `/indago-interpret-metrics` (P@50 / recall) · `/indago-sync-r2` (upload) · `/indago-run-osint` (analyst report).
 
-## Quick inspect (latest on arktrace-public, no credentials)
+## CLI (humans and agents)
+
+Run from the **indago repo root**. Same entry point for terminal use and agent invocation:
 
 ```bash
-uv run python scripts/inspect_watchlist.py
-uv run python scripts/inspect_watchlist.py --mmsi 352001906
-uv run python scripts/inspect_watchlist.py --sanctions-distance 1 2 --min-chain-hops 2
-uv run python scripts/inspect_watchlist.py --json --limit 50
+uv run python .agents/skills/indago-inspect-watchlist/inspect_watchlist.py
+uv run python .agents/skills/indago-inspect-watchlist/inspect_watchlist.py --mmsi 352001906
+uv run python .agents/skills/indago-inspect-watchlist/inspect_watchlist.py --sanctions-distance 1 2 --min-chain-hops 2
+uv run python .agents/skills/indago-inspect-watchlist/inspect_watchlist.py --json --limit 50
 ```
 
 Cache downloads for repeat runs:
 
 ```bash
-uv run python scripts/inspect_watchlist.py --cache-dir /tmp/arktrace-wl
+uv run python .agents/skills/indago-inspect-watchlist/inspect_watchlist.py --cache-dir /tmp/arktrace-wl
 ```
 
-## Pull maridb-public zip (CI backtest bundle)
-
-Same watchlists as CI `pull-watchlists` (may differ in layout from arktrace-public `score/`):
+Pull maridb-public zip (CI backtest bundle), then inspect locally:
 
 ```bash
-uv run python scripts/inspect_watchlist.py --pull --source local --data-dir data/processed
+uv run python .agents/skills/indago-inspect-watchlist/inspect_watchlist.py --pull --source local
 ```
 
 ## Where watchlists live on R2
