@@ -3,9 +3,12 @@ name: Publish data to R2
 # Canonical workflow that rescores all active streaming regions, validates
 # watchlists, runs the public backtest, and publishes results to R2.
 #
+# Region pipelines run in parallel matrix jobs (one runner per region) so CPU
+# and gdelt.lance are not contended. A final publish job aggregates watchlist
+# artifacts, runs the backtest, and pushes to R2 / arktrace-public.
+#
 # Triggers:
-#   - Daily schedule (01:00 UTC) — keeps watchlists and artifacts fresh
-#   - Automatically after Public Backtest Integration completes on main
+#   - Automatically after AIS Upload Validation completes on main
 #   - Manual dispatch
 
 on:
@@ -27,14 +30,95 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  publish:
-    name: Run pipeline & push to R2
-    # Skip automatic runs if the upstream workflow failed
+  pipeline-region:
+    name: Pipeline (${{ matrix.r2_region }})
     if: >-
       github.event_name == 'workflow_dispatch' ||
       github.event_name == 'schedule' ||
       github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
+    timeout-minutes: 180
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      max-parallel: 5
+      matrix:
+        include:
+          - r2_region: japansea
+            pipeline_region: japan
+          - r2_region: blacksea
+            pipeline_region: blacksea
+          - r2_region: middleeast
+            pipeline_region: middleeast
+          - r2_region: singapore
+            pipeline_region: singapore
+          - r2_region: europe
+            pipeline_region: europe
+    env:
+      MARIDB_DATA_DIR: data/processed
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b  # v8.1.0
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: uv sync --all-extras
+
+      - name: Compute today (UTC) for cache key
+        id: date
+        run: echo "today=$(date -u +%Y-%m-%d)" >> "$GITHUB_OUTPUT"
+
+      - name: Restore AIS Parquet cache
+        uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684  # v4.2.3
+        with:
+          path: data/downloads/ais
+          key: ais-parquet-${{ matrix.r2_region }}-${{ steps.date.outputs.today }}
+          restore-keys: |
+            ais-parquet-${{ matrix.r2_region }}-
+
+      - name: Pull region data from R2
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: auto
+        run: |
+          DOWNLOAD_DAYS=${{ inputs.download_days || '35' }}
+          uv run python scripts/sync_r2.py pull-ais-parquet \
+            --regions ${{ matrix.r2_region }} \
+            --days "$DOWNLOAD_DAYS" \
+            --data-dir data/downloads
+          uv run python scripts/sync_r2.py pull-gfw-eo \
+            || echo "::warning::pull-gfw-eo skipped or failed (non-fatal)"
+
+      - name: Run pipeline
+        run: |
+          uv run python scripts/run_pipeline.py \
+            --region ${{ matrix.pipeline_region }} \
+            --non-interactive \
+            --skip-gdelt
+
+      - name: Upload region artifacts
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4
+        with:
+          name: pipeline-${{ matrix.r2_region }}
+          path: |
+            data/processed/score/${{ matrix.r2_region }}_watchlist.parquet
+            data/processed/score/${{ matrix.r2_region }}_ownership_graph.parquet
+          if-no-files-found: warn
+          retention-days: 7
+
+  publish:
+    name: Push to R2
+    needs: pipeline-region
+    if: ${{ !cancelled() && needs.pipeline-region.result == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
     permissions:
       contents: read
     env:
@@ -52,95 +136,14 @@ jobs:
       - name: Install dependencies
         run: uv sync --all-extras
 
-      # Cache AIS Parquet partitions across runs.
-      # Partitions older than 7 days are immutable (push-ais-parquet's rolling
-      # re-upload window). A cache keyed on today's UTC date is valid for the
-      # whole day; restore-keys fall back to the most recent prior day's cache.
-      # pull-ais-parquet skips files whose local size matches R2, so a cache
-      # hit means only the recent 7-day window needs to be fetched from R2.
-      - name: Compute today (UTC) for cache key
-        id: date
-        run: echo "today=$(date -u +%Y-%m-%d)" >> "$GITHUB_OUTPUT"
-
-      - name: Restore AIS Parquet cache
-        uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684  # v4.2.3
+      - name: Download region pipeline artifacts
+        uses: actions/download-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4
         with:
-          path: data/downloads/ais
-          key: ais-parquet-${{ steps.date.outputs.today }}
-          restore-keys: |
-            ais-parquet-
+          pattern: pipeline-*
+          path: .
+          merge-multiple: true
 
-      # Pull AIS Parquet, watchlists, and GFW EO parquets in parallel from maridb-public.
-      # AIS data is uploaded by the local macOS r2sync LaunchAgent (push-ais-parquet).
-      # Optional pulls use || true so a missing object does not abort the job.
-      - name: Pull data from R2 (parallel)
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_REGION: auto
-        run: |
-          # AIS Parquet partitions written by local macOS push-ais-parquet job.
-          # Default 35 days covers the 30-day rolling window + 5 days buffer.
-          # Cached partitions are skipped (size match) — only the 7-day re-upload
-          # window needs to be fetched from R2 on a cache hit.
-          # Pass download_days=60 on workflow_dispatch for a full backfill pull.
-          DOWNLOAD_DAYS=${{ inputs.download_days || '35' }}
-          uv run python scripts/sync_r2.py pull-ais-parquet \
-            --regions japansea,blacksea,middleeast,singapore,europe \
-            --days "$DOWNLOAD_DAYS" \
-            --data-dir data/downloads &
-          PID_AIS=$!
-          # Watchlists from previous pipeline run
-          uv run python scripts/sync_r2.py pull-watchlists &
-          PID_WL=$!
-          # GFW EO parquets from the weekly gfw-ingest.yml job
-          uv run python scripts/sync_r2.py pull-gfw-eo &
-          PID_GFW=$!
-          wait $PID_WL  || echo "::warning::pull-watchlists skipped or failed (non-fatal)"
-          wait $PID_GFW || echo "::warning::pull-gfw-eo skipped or failed (non-fatal)"
-          wait $PID_AIS  # required
-
-      # Pull gdelt.lance from R2 — ingested weekly by gdelt-ingest.yml.
-      # Avoids re-ingesting on every daily run and eliminates concurrent LanceDB
-      # write locks across parallel pipelines.
-      - name: Pull gdelt.lance from R2
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_REGION: auto
-        run: |
-          uv run python scripts/sync_r2.py pull-gdelt \
-            || echo "::warning::gdelt.lance not in R2 yet — pipelines will run without GDELT context"
-
-      # Run all five region pipelines concurrently. Each region writes to its own
-      # data/processed/ais/{region}.duckdb with no shared state, so parallel
-      # execution is safe. Europe (the largest region) sets the wall-clock ceiling.
-      - name: Run pipelines (parallel)
-        run: |
-          uv run python scripts/run_pipeline.py --region japan      --non-interactive &
-          PID_JP=$!
-          uv run python scripts/run_pipeline.py --region blacksea   --non-interactive &
-          PID_BS=$!
-          uv run python scripts/run_pipeline.py --region middleeast --non-interactive &
-          PID_ME=$!
-          uv run python scripts/run_pipeline.py --region singapore  --non-interactive &
-          PID_SG=$!
-          uv run python scripts/run_pipeline.py --region europe     --non-interactive &
-          PID_EU=$!
-          fail=0
-          wait $PID_JP || { echo "::error::pipeline failed: japan";      fail=1; }
-          wait $PID_BS || { echo "::error::pipeline failed: blacksea";   fail=1; }
-          wait $PID_ME || { echo "::error::pipeline failed: middleeast"; fail=1; }
-          wait $PID_SG || { echo "::error::pipeline failed: singapore";  fail=1; }
-          wait $PID_EU || { echo "::error::pipeline failed: europe";     fail=1; }
-          exit $fail
-
-      # Run backtest against the pulled watchlists.
-      # --skip-pipeline: watchlists are pre-pulled from R2 above; CI has no live
-      #   AIS data so running the pipeline here would produce only ~10 seeded
-      #   dummy vessels — below --min-watchlist-size=100 — and all regions skip.
-      # --seed-dummy: still passed so the dummy MMSI filter logic is consistent.
-      - name: Run backtest (skip pipeline, use pulled watchlists)
+      - name: Run backtest (skip pipeline, use fresh watchlists)
         run: |
           uv run python scripts/run_public_backtest_batch.py \
             --regions singapore,japan,europe,blacksea,middleeast \
@@ -164,9 +167,6 @@ jobs:
           echo "snapshot_mb=$snapshot_mb" >> "$GITHUB_OUTPUT"
 
       - name: Seed demo files for push-demo
-        # Ensures all _DEMO_FILES exist in MARIDB_DATA_DIR (data/processed in CI)
-        # so push-demo can find them. Generates empty-schema fallbacks for files
-        # that the pipeline doesn't produce in --skip-pipeline mode.
         run: |
           uv run python - <<'EOF'
           import json, os, shutil
@@ -177,8 +177,6 @@ jobs:
           demo_dir.mkdir(parents=True, exist_ok=True)
           processed = demo_dir
 
-          # candidate_watchlist.parquet — primary demo file; must exist in demo_dir.
-          # The backtest writes it to data/processed/; copy it across.
           src = processed / "candidate_watchlist.parquet"
           if not src.exists():
               src = demo_dir / "candidate_watchlist.parquet"
@@ -187,8 +185,6 @@ jobs:
               shutil.copy2(src, dst_w)
               print(f"  candidate_watchlist.parquet ← {src}")
           elif not dst_w.exists():
-              # Pipeline produced no candidates — write an empty but schema-valid
-              # parquet so push-demo validation passes.
               df = pl.DataFrame(schema={
                   "mmsi": pl.Utf8, "imo": pl.Utf8, "vessel_name": pl.Utf8,
                   "vessel_type": pl.Utf8, "confidence": pl.Float64,
@@ -196,13 +192,11 @@ jobs:
               df.write_parquet(dst_w)
               print("  candidate_watchlist.parquet ← empty schema (pipeline produced no candidates)")
 
-          # composite_scores.parquet — use candidate_watchlist as source.
           dst = demo_dir / "composite_scores.parquet"
           if src.exists() and not dst.exists():
               shutil.copy2(src, dst)
               print(f"  composite_scores.parquet ← {src}")
 
-          # causal_effects.parquet — empty schema if missing
           dst_c = demo_dir / "causal_effects.parquet"
           if not dst_c.exists():
               df = pl.DataFrame(schema={
@@ -215,7 +209,6 @@ jobs:
               df.write_parquet(dst_c)
               print("  causal_effects.parquet ← empty schema (no full pipeline in CI)")
 
-          # score_history.parquet — 30-day rolling confidence history per vessel
           dst_sh = demo_dir / "score_history.parquet"
           if not dst_sh.exists():
               import random
@@ -224,7 +217,6 @@ jobs:
               _empty_sh = pl.DataFrame(schema={"mmsi": pl.Utf8, "score_date": pl.Utf8, "confidence": pl.Float32})
               if watchlist_path.exists():
                   wl = pl.read_parquet(watchlist_path)
-                  # Guard: pipeline may produce empty-schema parquet with no columns
                   if wl.height > 0 and "mmsi" in wl.columns and "confidence" in wl.columns:
                       rng = random.Random(42)
                       anchor = date.today()
@@ -246,7 +238,6 @@ jobs:
                   _empty_sh.write_parquet(dst_sh)
                   print("  score_history.parquet ← empty schema (no watchlist)")
 
-          # validation_metrics.json — derive from backtest report if missing
           dst_m = demo_dir / "validation_metrics.json"
           if not dst_m.exists():
               report_path = processed / "backtest_report_public_integration.json"
@@ -273,26 +264,15 @@ jobs:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_REGION: auto
-        run: |
-          # Overwrites demo.zip with the latest pipeline outputs so developers can
-          # run `pull-demo` (or fetch_demo_data.sh) without any credentials.
-          uv run python scripts/sync_r2.py push-demo
-
+        run: uv run python scripts/sync_r2.py push-demo
 
       - name: Push OpenSanctions DB to R2 (push-sanctions-db)
-        # public_eval.duckdb is only written when the full pipeline runs (not
-        # --skip-pipeline). Skip gracefully when the file is absent so CI-only
-        # runs (no live AIS data) don't fail the whole workflow.
         continue-on-error: true
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_REGION: auto
         run: |
-          # --force ensures the DB is always refreshed after run_public_backtest_batch.py
-          # regenerates it (which happens on every run).
-          # --data-dir points to data/processed where the backtest writes public_eval.duckdb
-          # (default is ~/.maridb/data which is not where the backtest outputs it).
           uv run python scripts/sync_r2.py push-sanctions-db --force \
             --data-dir data/processed
 
@@ -344,8 +324,7 @@ jobs:
           name: pipeline-artifacts-${{ github.run_id }}
           path: |
             data/processed/*.parquet
-            data/processed/*.duckdb
+            data/processed/score/*.parquet
             data/processed/*.json
           if-no-files-found: warn
           retention-days: 7
-

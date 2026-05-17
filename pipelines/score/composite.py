@@ -697,6 +697,11 @@ def main() -> None:
             "equal to their propagated_confidence (only lifts, never suppresses)."
         ),
     )
+    parser.add_argument(
+        "--skip-gdelt",
+        action="store_true",
+        help="Skip GDELT context enrichment (use in CI until batch lookup is implemented)",
+    )
     args = parser.parse_args()
 
     w_graph = args.w_graph
@@ -713,6 +718,7 @@ def main() -> None:
         geo_filter_path=args.geopolitical_event_filter,
         auto_calibrate=auto_calibrate,
         propagation_path=args.propagation_path,
+        skip_gdelt=args.skip_gdelt,
     )
     write_composite_scores(df, args.output)
     print(f"Composite rows written: {df.height}")
