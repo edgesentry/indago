@@ -220,6 +220,8 @@ def build_graph_tables(
     registered_at: list[dict] = []
     owned_by: list[dict] = []
     managed_by: list[dict] = []
+    controlled_by: list[dict] = []
+    _cb_seen: set[tuple[str, str]] = set()
     aliases: list[dict] = []
 
     # ------------------------------------------------------------------
@@ -337,6 +339,20 @@ def build_graph_tables(
                         }
                     )
 
+                parent_id = (row.get("parent_owner_id") or "").strip()
+                if parent_id:
+                    parent_name = (row.get("parent_owner_name") or "").strip()
+                    parent_country = (row.get("parent_owner_country") or "").strip()
+                    companies[parent_id] = {
+                        "id": parent_id,
+                        "name": parent_name or companies.get(parent_id, {}).get("name", parent_id),
+                        "country": parent_country or companies.get(parent_id, {}).get("country", ""),
+                    }
+                    link_src = owner_id or manager_id
+                    if link_src and (link_src, parent_id) not in _cb_seen:
+                        controlled_by.append({"src_id": link_src, "dst_id": parent_id})
+                        _cb_seen.add((link_src, parent_id))
+
     # ------------------------------------------------------------------
     # Assemble PyArrow tables
     # ------------------------------------------------------------------
@@ -355,8 +371,9 @@ def build_graph_tables(
         "SANCTIONED_BY": _rows_to_table(sanctioned_by, REL_SCHEMAS["SANCTIONED_BY"]),
         "REGISTERED_IN": _rows_to_table(registered_in, REL_SCHEMAS["REGISTERED_IN"]),
         "REGISTERED_AT": _rows_to_table(registered_at, REL_SCHEMAS["REGISTERED_AT"]),
-        # CONTROLLED_BY is populated externally (e.g. company hierarchy data)
-        "CONTROLLED_BY": REL_SCHEMAS["CONTROLLED_BY"].empty_table(),
+        "CONTROLLED_BY": _rows_to_table(controlled_by, REL_SCHEMAS["CONTROLLED_BY"])
+        if controlled_by
+        else REL_SCHEMAS["CONTROLLED_BY"].empty_table(),
         # STS_CONTACT: inferred from AIS co-location (H3 res-8, 30-min buckets)
         "STS_CONTACT": _rows_to_table(
             build_sts_contacts_from_ais(db_path), REL_SCHEMAS["STS_CONTACT"]

@@ -3,6 +3,8 @@
 config/launchagents/*.local.plist
 *.parquet
 *.csv
+!config/equasis/
+!config/equasis/ownership_seed.csv
 *.jsonl
 data/
 !data/demo/

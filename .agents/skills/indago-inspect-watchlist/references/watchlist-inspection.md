@@ -52,8 +52,13 @@ Prefer `data/processed/score/*_watchlist.parquet` over stale flat copies at `dat
 2. Open MMSI from script output
 3. Ownership chain subtitle must match `sanctions_distance` from Parquet
 
-## Graph data gap (why chains are short)
+## Ownership graph (indago#169)
 
-`vessel_registry` only adds `OWNED_BY` / `MANAGED_BY` when run with `--equasis-csv`. Weekly CI does not pass it today, so most vessels have `sanctions_distance` 0 or 99 only.
+CI builds `data/processed/equasis/ownership_chains.csv` from `config/equasis/ownership_seed.csv` after sanctions ingest, then passes it to `vessel_registry --equasis-csv`.
 
-To enrich chains: Equasis CSV → `uv run python -m pipelines.ingest.vessel_registry --db <region>.duckdb --equasis-csv …` → re-score → `push-arktrace`.
+```bash
+uv run python -m pipelines.ingest.equasis_ownership --db data/processed/ais/singapore.duckdb
+uv run python scripts/sync_r2.py pull-equasis-ownership   # optional R2 cache
+```
+
+If `Demo-ready: 0`, expand the seed CSV with MMSI + `manager_name` / `owner_name` matching `sanctions_entities` company names.
