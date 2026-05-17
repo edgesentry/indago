@@ -331,15 +331,19 @@ def step_features(region: RegionConfig, seed_dummy: bool = False) -> bool:
     ])
 
 
-def step_score(region: RegionConfig) -> bool:
+def step_score(region: RegionConfig, *, skip_gdelt: bool = False) -> bool:
     logger.info("[3/4] Score — anomaly, composite, watchlist")
     watchlist_out = str(_MARIDB_DATA / region.watchlist_key)
     env = {"DB_PATH": region.db_path, "WATCHLIST_OUTPUT_PATH": watchlist_out}
 
+    composite_cmd = [sys.executable, "-m", "pipelines.score.composite", "--db", region.db_path]
+    if skip_gdelt:
+        composite_cmd.append("--skip-gdelt")
+
     steps = [
         ([sys.executable, "-m", "pipelines.score.mpol_baseline", "--db", region.db_path], "mpol_baseline"),
         ([sys.executable, "-m", "pipelines.score.anomaly", "--db", region.db_path], "anomaly"),
-        ([sys.executable, "-m", "pipelines.score.composite", "--db", region.db_path], "composite"),
+        (composite_cmd, "composite"),
         ([sys.executable, "-c",
           "from pipelines.score.watchlist import main; main()",
           "--db", region.db_path,
@@ -397,6 +401,11 @@ def main() -> None:
                         help="Skip Gate 2 distribute step (use when S3 credentials are absent)")
     parser.add_argument("--seed-dummy", action="store_true",
                         help="Seed known OFAC-sanctioned vessels for CI known-case floor")
+    parser.add_argument(
+        "--skip-gdelt",
+        action="store_true",
+        help="Skip GDELT enrichment in composite (data-publish CI uses this for runtime)",
+    )
     parser.add_argument("--stream-duration", type=int, default=0, metavar="SECS",
                         help="Seconds to collect live AIS stream (0 = skip, non-interactive default)")
     parser.add_argument("--marine-cadastre-year", type=int, default=None, metavar="YEAR",
@@ -412,7 +421,7 @@ def main() -> None:
     if not args.skip_features:
         steps.append(("features", lambda: step_features(region, seed_dummy=args.seed_dummy)))
     if not args.skip_score:
-        steps.append(("score", lambda: step_score(region)))
+        steps.append(("score", lambda: step_score(region, skip_gdelt=args.skip_gdelt)))
     if not args.skip_distribute:
         steps.append(("distribute", lambda: step_distribute(region)))
 
