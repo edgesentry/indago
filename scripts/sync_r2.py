@@ -691,6 +691,85 @@ def cmd_pull_gdelt(args: argparse.Namespace) -> int:
     return 0
 
 
+_HULL_LANCE_ZIP_KEY = "hull_embeddings.lance.zip"
+_HULL_LANCE_LOCAL_DIR = "hull_embeddings.lance"
+
+
+def cmd_push_hull(args: argparse.Namespace) -> int:
+    """Zip hull_embeddings.lance and upload to R2."""
+    # zipmod already imported
+
+    bucket = os.getenv("S3_BUCKET", _DEFAULT_BUCKET)
+    data_dir = Path(args.data_dir)
+    lance_dir = data_dir / _HULL_LANCE_LOCAL_DIR
+
+    if not lance_dir.exists():
+        print(
+            f"Error: {lance_dir} does not exist. Run hull_embed.py first.",
+            file=sys.stderr,
+        )
+        return 1
+
+    fs = _build_r2_fs()
+    r2_path = f"{bucket}/{_HULL_LANCE_ZIP_KEY}"
+
+    local_files = _list_local(lance_dir)
+    total_size = sum(local_files.values())
+    print(f"{len(local_files)} files ({total_size / 1_048_576:.1f} MB) -> {_HULL_LANCE_ZIP_KEY}")
+
+    with tempfile.NamedTemporaryFile(suffix=".zip", delete=False) as tmp:
+        tmp_path = Path(tmp.name)
+
+    try:
+        with zipmod.ZipFile(tmp_path, "w", compression=zipmod.ZIP_STORED, allowZip64=True) as zf:
+            for rel in sorted(local_files):
+                zf.write(lance_dir / rel, arcname=rel)
+        print("Uploading ...")
+        uploaded = _upload_file(fs, tmp_path, r2_path)
+    finally:
+        tmp_path.unlink(missing_ok=True)
+
+    print(f"\nDone. Uploaded {uploaded / 1_048_576:.1f} MB -> R2 {r2_path}")
+    return 0
+
+
+def cmd_pull_hull(args: argparse.Namespace) -> int:
+    """Download hull_embeddings.lance.zip from R2 and extract."""
+    # zipmod already imported
+
+    bucket = os.getenv("S3_BUCKET", _DEFAULT_BUCKET)
+    data_dir = Path(args.data_dir)
+    anon = not (os.getenv("AWS_ACCESS_KEY_ID") and os.getenv("AWS_SECRET_ACCESS_KEY"))
+    fs = _build_r2_fs(anonymous=anon)
+    r2_path = f"{bucket}/{_HULL_LANCE_ZIP_KEY}"
+
+    with tempfile.NamedTemporaryFile(suffix=".zip", delete=False) as tmp:
+        tmp_path = Path(tmp.name)
+
+    try:
+        print(f"Downloading {_HULL_LANCE_ZIP_KEY} ...")
+        with fs.open_input_stream(r2_path) as src:
+            with open(tmp_path, "wb") as dst:
+                while chunk := src.read(4 * 1024 * 1024):
+                    dst.write(chunk)
+
+        lance_dir = data_dir / _HULL_LANCE_LOCAL_DIR
+        if lance_dir.exists():
+            import shutil
+            shutil.rmtree(lance_dir)
+        lance_dir.mkdir(parents=True)
+        with zipmod.ZipFile(tmp_path, "r") as zf:
+            zf.extractall(lance_dir)
+    except Exception as exc:
+        print(f"Error: {exc}", file=sys.stderr)
+        return 1
+    finally:
+        tmp_path.unlink(missing_ok=True)
+
+    print(f"Done. hull_embeddings.lance extracted to {lance_dir}/")
+    return 0
+
+
 def cmd_push_gfw_eo(args: argparse.Namespace) -> int:
     bucket = os.getenv("S3_BUCKET", _DEFAULT_BUCKET)
     data_dir = Path(args.data_dir)
@@ -1878,6 +1957,18 @@ def main() -> int:
     )
     push_arktrace_p.add_argument("--data-dir", default=_DEFAULT_DATA_DIR, metavar="DIR")
 
+    push_hull_p = sub.add_parser(
+        "push-hull",
+        help="Zip hull_embeddings.lance and upload to R2 (run after hull_embed.py)",
+    )
+    push_hull_p.add_argument("--data-dir", default=_DEFAULT_DATA_DIR, metavar="DIR")
+
+    pull_hull_p = sub.add_parser(
+        "pull-hull",
+        help="Download hull_embeddings.lance.zip from R2 and extract",
+    )
+    pull_hull_p.add_argument("--data-dir", default=_DEFAULT_DATA_DIR, metavar="DIR")
+
     sub.add_parser("list", help="List snapshot zips and shared objects in R2")
 
     args = parser.parse_args()
@@ -1887,6 +1978,7 @@ def main() -> int:
         "pull-sanctions-db",
         "pull-watchlists",
         "pull-equasis-ownership",
+        "pull-hull",
     )
     if not _check_env(require_credentials=not read_only):
         return 1
@@ -1912,6 +2004,8 @@ def main() -> int:
         "push-gebco-masks": cmd_push_gebco_masks,
         "pull-gebco-masks": cmd_pull_gebco_masks,
         "push-arktrace": cmd_push_arktrace,
+        "push-hull": cmd_push_hull,
+        "pull-hull": cmd_pull_hull,
         "list": cmd_list,
     }
     return dispatch[args.command](args)

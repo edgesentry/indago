@@ -1,0 +1,87 @@
+name: Hull Visual Fingerprinting
+
+# Triggered manually by an analyst after uploading new vessel images to R2.
+# Downloads images from R2, embeds new MMSIs via CLIP ViT-B/32, and pushes
+# the updated hull_embeddings.lance back to R2.
+#
+# The CLIP model (~600 MB) is cached in GitHub Actions between runs.
+# hull_embeddings.lance is stored in R2 alongside gdelt.lance and other
+# pipeline artefacts; it is pulled by the daily data-publish pipeline so
+# hull_visual_similarity appears in composite_scores.parquet automatically.
+
+on:
+  workflow_dispatch:
+    inputs:
+      force_reembed:
+        description: "Re-embed all MMSIs (not just new ones)"
+        type: boolean
+        default: false
+      dry_run:
+        description: "Dry run — embed locally but skip R2 push"
+        type: boolean
+        default: false
+      mmsi:
+        description: "Embed specific MMSI(s) only (space-separated, leave blank for all)"
+        required: false
+        default: ""
+
+permissions: {}
+
+jobs:
+  embed:
+    name: CLIP Embed + R2 Push
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    env:
+      MARIDB_DATA_DIR: data/processed
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b  # v8.1.0
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: uv sync --all-extras
+
+      # Cache the CLIP ViT-B/32 model weights (~600 MB).
+      # Key includes the model name so a model upgrade busts the cache.
+      - name: Cache CLIP model weights
+        uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684  # v4.2.3
+        with:
+          path: ~/.cache/huggingface/hub
+          key: clip-ViT-B-32-openai-${{ runner.os }}
+
+      - name: Create data dir
+        run: mkdir -p data/processed
+
+      - name: Run hull embed
+        env:
+          USE_S3: "1"
+          S3_BUCKET: ${{ vars.S3_BUCKET || 'maridb-public' }}
+          S3_ENDPOINT: ${{ vars.S3_ENDPOINT }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: auto
+        run: |
+          ARGS="--data-dir data/processed"
+          if [ "${{ inputs.force_reembed }}" = "true" ]; then
+            ARGS="$ARGS --force"
+          fi
+          if [ "${{ inputs.dry_run }}" = "true" ]; then
+            ARGS="$ARGS --dry-run"
+          fi
+          if [ -n "${{ inputs.mmsi }}" ]; then
+            ARGS="$ARGS --mmsi ${{ inputs.mmsi }}"
+          fi
+          uv run python scripts/hull_embed.py $ARGS
+
+      - name: Report
+        if: always()
+        run: |
+          echo "hull_embeddings.lance contents:"
+          find data/processed/hull_embeddings.lance -type f 2>/dev/null | head -20 || echo "(not found)"
