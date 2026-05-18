@@ -157,6 +157,7 @@ _GDELT_R2_KEY = "gdelt.lance.zip"  # single zip for gdelt
 _SANCTIONS_DB_R2_KEY = "public_eval.duckdb"  # OpenSanctions DB; separate from rotation zip
 _WATCHLISTS_R2_KEY = "watchlists.zip"  # lightweight bundle of *_watchlist.parquet files
 _EQUASIS_OWNERSHIP_R2_KEY = "equasis/ownership_chains.csv"  # global ownership seed output (indago#169)
+_EQUASIS_SEED_HASH_R2_KEY = "equasis/ownership_chains.seed_hash"
 _DEMO_R2_KEY = "demo.zip"  # fixed-key public demo bundle; overwritten on every push-demo
 _GFW_EO_R2_PREFIX = "gfw-eo/"  # SAR + Sentinel-2 parquets; one file per region
 _GFW_EO_REGIONS = ["singapore", "japan", "europe", "blacksea", "middleeast"]
@@ -985,6 +986,9 @@ def cmd_push_equasis_ownership(args: argparse.Namespace) -> int:
     r2_path = f"{bucket}/{_EQUASIS_OWNERSHIP_R2_KEY}"
     print(f"Uploading {local.name} ({local.stat().st_size} B) → {r2_path} ...")
     _upload_file(fs, local, r2_path)
+    hash_local = local.parent / "ownership_chains.seed_hash"
+    if hash_local.is_file():
+        _upload_file(fs, hash_local, f"{bucket}/{_EQUASIS_SEED_HASH_R2_KEY}")
     print(f"Done. Public: {_PUBLIC_BASE_URL}/{_EQUASIS_OWNERSHIP_R2_KEY}")
     return 0
 
@@ -1012,6 +1016,16 @@ def cmd_pull_equasis_ownership(args: argparse.Namespace) -> int:
     dest.parent.mkdir(parents=True, exist_ok=True)
     print(f"Downloading {_EQUASIS_OWNERSHIP_R2_KEY} → {dest} ...")
     _download_file(fs, r2_path, dest)
+    hash_r2 = f"{bucket}/{_EQUASIS_SEED_HASH_R2_KEY}"
+    try:
+        hash_infos = fs.get_file_info([hash_r2])
+        if hash_infos[0].type != pafs.FileType.NotFound:
+            _download_file(fs, hash_r2, dest.parent / "ownership_chains.seed_hash")
+    except Exception as exc:
+        print(
+            f"Warning: failed to download optional seed hash ({hash_r2}): {exc}",
+            file=sys.stderr,
+        )
     print(f"Done. {dest.stat().st_size} B")
     return 0
 

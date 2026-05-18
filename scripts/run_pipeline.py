@@ -12,6 +12,7 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import hashlib
 import logging
 import os
 import subprocess
@@ -47,6 +48,7 @@ _EQUASIS_CSV = Path(
     os.getenv("EQUASIS_OWNERSHIP_CSV", str(_MARIDB_DATA / "equasis" / "ownership_chains.csv"))
 )
 _EQUASIS_SEED = _REPO_ROOT / "config" / "equasis" / "ownership_seed.csv"
+_EQUASIS_SEED_HASH = _EQUASIS_CSV.parent / "ownership_chains.seed_hash"
 
 
 def _db(stem: str) -> str:
@@ -275,13 +277,15 @@ def _ensure_equasis_ownership_csv(db_path: str) -> Path | None:
     explicit = os.getenv("EQUASIS_OWNERSHIP_CSV")
     if explicit and Path(explicit).is_file():
         return Path(explicit)
-    seed_newer = (
-        _EQUASIS_SEED.is_file()
-        and _EQUASIS_CSV.is_file()
-        and _EQUASIS_SEED.stat().st_mtime > _EQUASIS_CSV.stat().st_mtime
-    )
-    if _EQUASIS_CSV.is_file() and _EQUASIS_CSV.stat().st_size > 0 and not seed_newer:
-        return _EQUASIS_CSV
+    if _EQUASIS_CSV.is_file() and _EQUASIS_CSV.stat().st_size > 0:
+        if _EQUASIS_SEED.is_file():
+            current_hash = hashlib.sha256(_EQUASIS_SEED.read_bytes()).hexdigest()
+            cached_hash = _EQUASIS_SEED_HASH.read_text().strip() if _EQUASIS_SEED_HASH.is_file() else ""
+            if current_hash == cached_hash:
+                return _EQUASIS_CSV
+            logger.info("  ↻ equasis: seed changed — rebuilding ownership CSV")
+        else:
+            return _EQUASIS_CSV
     if not _EQUASIS_SEED.is_file():
         logger.warning("  ⚠ equasis: no seed at %s — skipping ownership edges", _EQUASIS_SEED)
         return None
@@ -295,6 +299,7 @@ def _ensure_equasis_ownership_csv(db_path: str) -> Path | None:
     if n <= 0:
         logger.warning("  ⚠ equasis: 0 ownership rows resolved from seed")
         return None
+    _EQUASIS_SEED_HASH.write_text(hashlib.sha256(_EQUASIS_SEED.read_bytes()).hexdigest())
     logger.info("  ✓ equasis: %d ownership rows → %s", n, _EQUASIS_CSV.name)
     return _EQUASIS_CSV
 
