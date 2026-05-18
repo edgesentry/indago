@@ -1021,8 +1021,11 @@ def cmd_pull_equasis_ownership(args: argparse.Namespace) -> int:
         hash_infos = fs.get_file_info([hash_r2])
         if hash_infos[0].type != pafs.FileType.NotFound:
             _download_file(fs, hash_r2, dest.parent / "ownership_chains.seed_hash")
-    except Exception:
-        pass
+    except Exception as exc:
+        print(
+            f"Warning: failed to download optional seed hash ({hash_r2}): {exc}",
+            file=sys.stderr,
+        )
     print(f"Done. {dest.stat().st_size} B")
     return 0
 
