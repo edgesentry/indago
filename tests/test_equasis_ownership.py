@@ -121,11 +121,11 @@ def _seed_committed_seed_sanctions(db_path: str) -> None:
         ("co-nardie", "Nardie International S.A.", "MH"),
         (
             "co-harry",
-            "Harry Victor Ship Management and Operation L.L.C.",
+            "Harry Victor Ship Management and Operation L.L.C",
             "AE",
         ),
         ("co-logos", "Logos Marine Pte. Ltd.", "SG"),
-        ("co-rosneft", "Rosnefteflot JSC", "RU"),
+        ("co-rosmorport", "FSUE Rosmorport Far Eastern Basin Branch", "RU"),
         ("co-scf", "Joint Stock Company Sovcomflot", "RU"),
     ]
     con = duckdb.connect(db_path)
@@ -152,7 +152,7 @@ COMMITTED_SEED_RESOLUTIONS: dict[str, tuple[str, str]] = {
     "352001907": ("manager_id", "co-fleet"),
     "312171000": ("manager_id", "co-harry"),
     "457133000": ("manager_id", "co-logos"),
-    "273449240": ("manager_id", "co-rosneft"),
+    "273449240": ("manager_id", "co-rosmorport"),
     "273312060": ("manager_id", "co-scf"),
 }
 

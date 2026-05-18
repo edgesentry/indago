@@ -15,6 +15,7 @@ from __future__ import annotations
 import argparse
 import csv
 import json
+import sys
 from pathlib import Path
 
 import duckdb
@@ -135,6 +136,11 @@ def _rows_from_seed(
                     out["owner_id"] = oid
                     out["owner_name"] = oname
                     out["owner_country"] = oflag
+                else:
+                    print(
+                        f"WARNING: equasis_ownership seed MMSI {mmsi}: owner_name {owner_name!r} not found in sanctions_entities",
+                        file=sys.stderr,
+                    )
 
             manager_name = (row.get("manager_name") or "").strip()
             if manager_name:
@@ -144,6 +150,11 @@ def _rows_from_seed(
                     out["manager_id"] = mid
                     out["manager_name"] = mname
                     out["manager_country"] = mflag
+                else:
+                    print(
+                        f"WARNING: equasis_ownership seed MMSI {mmsi}: manager_name {manager_name!r} not found in sanctions_entities",
+                        file=sys.stderr,
+                    )
 
             parent_name = (row.get("parent_owner_name") or "").strip()
             if parent_name:
@@ -153,9 +164,19 @@ def _rows_from_seed(
                     out["parent_owner_id"] = pid
                     out["parent_owner_name"] = pname
                     out["parent_owner_country"] = pflag
+                else:
+                    print(
+                        f"WARNING: equasis_ownership seed MMSI {mmsi}: parent_owner_name {parent_name!r} not found in sanctions_entities",
+                        file=sys.stderr,
+                    )
 
             if out.get("owner_id") or out.get("manager_id"):
                 rows_out.append(out)
+            else:
+                print(
+                    f"WARNING: equasis_ownership seed MMSI {mmsi}: no owner_id or manager_id resolved — row dropped",
+                    file=sys.stderr,
+                )
     return rows_out
 
 
