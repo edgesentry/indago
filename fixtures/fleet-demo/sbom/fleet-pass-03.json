@@ -1,0 +1,240 @@
+{
+  "bomFormat": "CycloneDX",
+  "components": [
+    {
+      "name": "bouncycastle-prov",
+      "purl": "pkg:maven/org.bouncycastle/bcprov-jdk15on@1.78.1",
+      "supplier": {
+        "name": "Synthetic Vendor Co."
+      },
+      "type": "library",
+      "version": "1.78.1"
+    },
+    {
+      "name": "commons-compress",
+      "purl": "pkg:maven/org.apache.commons/commons-compress@1.26.0",
+      "supplier": {
+        "name": "Synthetic Vendor Co."
+      },
+      "type": "library",
+      "version": "1.26.0"
+    },
+    {
+      "name": "tomcat-embed-core",
+      "purl": "pkg:maven/org.apache.tomcat.embed/tomcat-embed-core@9.0.90",
+      "supplier": {
+        "name": "Synthetic Vendor Co."
+      },
+      "type": "library",
+      "version": "9.0.90"
+    },
+    {
+      "name": "hibernate-core",
+      "purl": "pkg:maven/org.hibernate/hibernate-core@5.6.15.Final",
+      "supplier": {
+        "name": "Synthetic Vendor Co."
+      },
+      "type": "library",
+      "version": "5.6.15.Final"
+    },
+    {
+      "name": "guava",
+      "purl": "pkg:maven/com.google.guava/guava@32.1.3-jre",
+      "supplier": {
+        "name": "Synthetic Vendor Co."
+      },
+      "type": "library",
+      "version": "32.1.3-jre"
+    },
+    {
+      "name": "jackson-databind",
+      "purl": "pkg:maven/com.fasterxml.jackson.core/jackson-databind@2.15.4",
+      "supplier": {
+        "name": "Synthetic Vendor Co."
+      },
+      "type": "library",
+      "version": "2.15.4"
+    },
+    {
+      "name": "netty-handler",
+      "purl": "pkg:maven/io.netty/netty-handler@4.1.100.Final",
+      "supplier": {
+        "name": "Synthetic Vendor Co."
+      },
+      "type": "library",
+      "version": "4.1.100.Final"
+    },
+    {
+      "name": "spring-core",
+      "purl": "pkg:maven/org.springframework/spring-core@5.3.39",
+      "supplier": {
+        "name": "Synthetic Vendor Co."
+      },
+      "type": "library",
+      "version": "5.3.39"
+    },
+    {
+      "name": "snakeyaml",
+      "purl": "pkg:maven/org.yaml/snakeyaml@2.2",
+      "supplier": {
+        "name": "Synthetic Vendor Co."
+      },
+      "type": "library",
+      "version": "2.2"
+    },
+    {
+      "name": "log4j-core",
+      "purl": "pkg:maven/org.apache.logging.log4j/log4j-core@2.23.1",
+      "supplier": {
+        "name": "Synthetic Vendor Co."
+      },
+      "type": "library",
+      "version": "2.23.1"
+    },
+    {
+      "name": "log4j-core-f1",
+      "purl": "pkg:maven/org.apache.logging.log4j/log4j-core@2.23.1",
+      "supplier": {
+        "name": "Synthetic Vendor Co."
+      },
+      "type": "library",
+      "version": "2.23.1"
+    },
+    {
+      "name": "spring-core-f2",
+      "purl": "pkg:maven/org.springframework/spring-core@5.3.39",
+      "supplier": {
+        "name": "Synthetic Vendor Co."
+      },
+      "type": "library",
+      "version": "5.3.39"
+    },
+    {
+      "name": "jackson-databind-f3",
+      "purl": "pkg:maven/com.fasterxml.jackson.core/jackson-databind@2.15.4",
+      "supplier": {
+        "name": "Synthetic Vendor Co."
+      },
+      "type": "library",
+      "version": "2.15.4"
+    },
+    {
+      "name": "netty-handler-f4",
+      "purl": "pkg:maven/io.netty/netty-handler@4.1.100.Final",
+      "supplier": {
+        "name": "Synthetic Vendor Co."
+      },
+      "type": "library",
+      "version": "4.1.100.Final"
+    },
+    {
+      "name": "tomcat-embed-core-f5",
+      "purl": "pkg:maven/org.apache.tomcat.embed/tomcat-embed-core@9.0.90",
+      "supplier": {
+        "name": "Synthetic Vendor Co."
+      },
+      "type": "library",
+      "version": "9.0.90"
+    },
+    {
+      "name": "commons-compress-f6",
+      "purl": "pkg:maven/org.apache.commons/commons-compress@1.26.0",
+      "supplier": {
+        "name": "Synthetic Vendor Co."
+      },
+      "type": "library",
+      "version": "1.26.0"
+    },
+    {
+      "name": "guava-f7",
+      "purl": "pkg:maven/com.google.guava/guava@32.1.3-jre",
+      "supplier": {
+        "name": "Synthetic Vendor Co."
+      },
+      "type": "library",
+      "version": "32.1.3-jre"
+    },
+    {
+      "name": "snakeyaml-f8",
+      "purl": "pkg:maven/org.yaml/snakeyaml@2.2",
+      "supplier": {
+        "name": "Synthetic Vendor Co."
+      },
+      "type": "library",
+      "version": "2.2"
+    },
+    {
+      "name": "bouncycastle-prov-f9",
+      "purl": "pkg:maven/org.bouncycastle/bcprov-jdk15on@1.78.1",
+      "supplier": {
+        "name": "Synthetic Vendor Co."
+      },
+      "type": "library",
+      "version": "1.78.1"
+    },
+    {
+      "name": "hibernate-core-f10",
+      "purl": "pkg:maven/org.hibernate/hibernate-core@5.6.15.Final",
+      "supplier": {
+        "name": "Synthetic Vendor Co."
+      },
+      "type": "library",
+      "version": "5.6.15.Final"
+    },
+    {
+      "name": "log4j-core-f11",
+      "purl": "pkg:maven/org.apache.logging.log4j/log4j-core@2.23.1",
+      "supplier": {
+        "name": "Synthetic Vendor Co."
+      },
+      "type": "library",
+      "version": "2.23.1"
+    },
+    {
+      "name": "spring-core-f12",
+      "purl": "pkg:maven/org.springframework/spring-core@5.3.39",
+      "supplier": {
+        "name": "Synthetic Vendor Co."
+      },
+      "type": "library",
+      "version": "5.3.39"
+    },
+    {
+      "name": "jackson-databind-f13",
+      "purl": "pkg:maven/com.fasterxml.jackson.core/jackson-databind@2.15.4",
+      "supplier": {
+        "name": "Synthetic Vendor Co."
+      },
+      "type": "library",
+      "version": "2.15.4"
+    },
+    {
+      "name": "netty-handler-f14",
+      "purl": "pkg:maven/io.netty/netty-handler@4.1.100.Final",
+      "supplier": {
+        "name": "Synthetic Vendor Co."
+      },
+      "type": "library",
+      "version": "4.1.100.Final"
+    },
+    {
+      "name": "tomcat-embed-core-f15",
+      "purl": "pkg:maven/org.apache.tomcat.embed/tomcat-embed-core@9.0.90",
+      "supplier": {
+        "name": "Synthetic Vendor Co."
+      },
+      "type": "library",
+      "version": "9.0.90"
+    }
+  ],
+  "metadata": {
+    "component": {
+      "name": "fleet-pass-03-stack",
+      "type": "application",
+      "version": "2024.1"
+    }
+  },
+  "serialNumber": "urn:uuid:fleet-pass-03-demo",
+  "specVersion": "1.5",
+  "version": 1
+}

@@ -13,6 +13,7 @@ uv run pytest tests/maritime_cyber/ -q
 | `test_run_clearance.py` | W6, D1 — E2E + hold-to-pass scenario |
 | `test_worm_store.py` | D3 — mock WORM publish/verify |
 | `test_export_vessel_graph.py` | D4 — JSON/HTML export |
+| `test_fleet_demo.py` | W8 — fleet-demo fixtures, fleet eval + golden `decision_hash` |
 | `test_audit_integration.py` | W4 — `eds` sign/verify (skipped if no binary) |
 
 Program context: [docs/ref-maritime-cyber-capvista.md](../../docs/ref-maritime-cyber-capvista.md).

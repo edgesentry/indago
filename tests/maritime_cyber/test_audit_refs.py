@@ -10,8 +10,16 @@ import pytest
 from pipelines.maritime_cyber.audit_refs import (
     ManifestDriftError,
     assert_manifest_audit_refs,
+    audit_path_label,
     build_bom_baseline_ref,
+    build_cve_snapshot_ref,
     integrated_snapshot_fingerprint,
+    resolve_audit_path,
+)
+from pipelines.maritime_cyber.fleet_demo import (
+    FLEET_DEMO_ASSET_MAP,
+    FLEET_DEMO_CVE_SNAPSHOT,
+    FLEET_DEMO_SBOM_DIR,
 )
 from pipelines.maritime_cyber.eval import evaluate_port_clearance, write_evaluation_artifacts
 from pipelines.maritime_cyber.graph import build_maritime_cyber_graph
@@ -90,6 +98,20 @@ def test_integrated_snapshot_fingerprint_changes_on_outcome_change() -> None:
 
 def test_build_bom_baseline_ref_paths_exist() -> None:
     ref = build_bom_baseline_ref("vessel-hold")
-    assert Path(ref["sbom_path"]).is_file()
-    assert Path(ref["asset_map_path"]).is_file()
+    assert resolve_audit_path(ref["sbom_path"]).is_file()
+    assert resolve_audit_path(ref["asset_map_path"]).is_file()
     assert len(ref["sbom_sha256"]) == 64
+
+
+def test_audit_refs_use_repo_relative_paths_for_fleet_demo() -> None:
+    ref = build_bom_baseline_ref(
+        "fleet-hold-01",
+        asset_map_path=FLEET_DEMO_ASSET_MAP,
+        sbom_dir=FLEET_DEMO_SBOM_DIR,
+    )
+    assert ref["asset_map_path"] == audit_path_label(FLEET_DEMO_ASSET_MAP)
+    assert ref["sbom_path"] == "fixtures/fleet-demo/sbom/fleet-hold-01.json"
+    assert not Path(ref["asset_map_path"]).is_absolute()
+
+    cve_ref = build_cve_snapshot_ref(cve_snapshot_path=FLEET_DEMO_CVE_SNAPSHOT)
+    assert cve_ref["cve_snapshot_path"] == audit_path_label(FLEET_DEMO_CVE_SNAPSHOT)

@@ -1,0 +1,106 @@
+{
+  "description": "Demo-enhanced pinned subset for fleet-demo fixtures (synthetic SBOM linkage)",
+  "schema": "OSV",
+  "snapshot_id": "fleet-demo-2026-05-27",
+  "vulnerabilities": [
+    {
+      "affected": [
+        {
+          "package": {
+            "ecosystem": "Maven",
+            "name": "org.apache.logging.log4j:log4j-core"
+          },
+          "ranges": [
+            {
+              "events": [
+                {
+                  "introduced": "2.0-beta9"
+                },
+                {
+                  "fixed": "2.15.0"
+                }
+              ],
+              "type": "ECOSYSTEM"
+            }
+          ]
+        }
+      ],
+      "aliases": [
+        "CVE-2021-44228"
+      ],
+      "database_specific": {
+        "cvss_score": 10.0,
+        "in_kev": true
+      },
+      "id": "GHSA-jfhr-c2vg-8q4j",
+      "severity": "CRITICAL",
+      "summary": "Apache Log4j2 remote code execution (Log4Shell)"
+    },
+    {
+      "affected": [
+        {
+          "package": {
+            "ecosystem": "Maven",
+            "name": "org.springframework:spring-core"
+          },
+          "ranges": [
+            {
+              "events": [
+                {
+                  "introduced": "5.3.0"
+                },
+                {
+                  "fixed": "5.3.18"
+                }
+              ],
+              "type": "ECOSYSTEM"
+            }
+          ]
+        }
+      ],
+      "aliases": [
+        "CVE-2022-22965"
+      ],
+      "database_specific": {
+        "cvss_score": 9.8,
+        "in_kev": false
+      },
+      "id": "GHSA-4wrc-f8pq-fpwx",
+      "severity": "CRITICAL",
+      "summary": "Spring Framework RCE (Spring4Shell) \u2014 demo path not wired by default"
+    },
+    {
+      "affected": [
+        {
+          "package": {
+            "ecosystem": "Maven",
+            "name": "com.fasterxml.jackson.core:jackson-databind"
+          },
+          "ranges": [
+            {
+              "events": [
+                {
+                  "introduced": "2.0.0"
+                },
+                {
+                  "fixed": "2.13.4.2"
+                }
+              ],
+              "type": "ECOSYSTEM"
+            }
+          ]
+        }
+      ],
+      "aliases": [
+        "CVE-2020-36518"
+      ],
+      "database_specific": {
+        "cvss_score": 7.5,
+        "in_kev": false
+      },
+      "id": "GHSA-vmq6-5fm6-3xx7",
+      "severity": "HIGH",
+      "summary": "Jackson-databind denial of service"
+    }
+  ]
+}

@@ -19,7 +19,9 @@
 | **W6** | E2E orchestration | indago | **Done** | `agents/port_clearance/run_clearance.py` |
 | **W7** | Submission (video, deck, portal) | edgesentry-commercial | **Open** | G8–G12, L1–L4 — [issue #153](https://github.com/edgesentry/edgesentry-commercial/issues/153) |
 
-**Post-MVP (not portal blockers):** W8 fixture generator · W9 fleet graph viz (Cytoscape / arktrace S1). Minimal path export is covered by **D4** (`export_vessel_graph`).
+**W8 fleet-demo:** `fixtures/fleet-demo/` (12 vessels) · `scripts/generate_maritime_cyber_fixtures.py` · profile `fleet-demo-manifest.yaml` · tests `test_fleet_demo.py` ([#196](https://github.com/edgesentry/indago/issues/196)).
+
+**Post-MVP (not portal blockers):** W9 fleet graph viz (Cytoscape / arktrace S1). Minimal path export is covered by **D4** (`export_vessel_graph`).
 
 ---
 

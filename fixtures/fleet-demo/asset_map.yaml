@@ -1,0 +1,893 @@
+version: 0.1.0
+synthetic: true
+tier: demo-enhanced
+generator_seed: 42
+vessels:
+  fleet-pass-02:
+    imo: IMO9991001
+    display_name: Fleet Pass 02
+    physical_assets:
+    - id: ecdis-01
+      name: ECDIS Workstation
+      cbs_category: navigation
+      safety_function: essential
+      ecu_zone: bridge_nav
+      network_zone: zone_1
+      manufacturer: Demo Marine Electronics
+      firmware:
+        id: ecdis-01-fw-2024
+        version: '2024.1'
+        contains:
+        - purl: pkg:maven/org.apache.logging.log4j/log4j-core@2.23.1
+          component_name: log4j-core
+    - id: radar-01
+      name: X-Band Radar Processor
+      cbs_category: navigation
+      safety_function: important
+      ecu_zone: bridge_nav
+      network_zone: zone_1
+      manufacturer: Demo Marine Electronics
+      firmware:
+        id: radar-01-fw-2024
+        version: '2024.1'
+        contains:
+        - purl: pkg:maven/org.springframework/spring-core@5.3.39
+          component_name: spring-core
+    - id: vdr-01
+      name: Voyage Data Recorder
+      cbs_category: navigation
+      safety_function: essential
+      ecu_zone: bridge_nav
+      network_zone: zone_1
+      manufacturer: Demo Marine Electronics
+      firmware:
+        id: vdr-01-fw-2024
+        version: '2024.1'
+        contains: []
+    - id: ams-01
+      name: Alarm Management Server
+      cbs_category: other
+      safety_function: important
+      ecu_zone: engine_room
+      network_zone: zone_2
+      manufacturer: Demo Marine Electronics
+      firmware:
+        id: ams-01-fw-2024
+        version: '2024.1'
+        contains: []
+    - id: comms-01
+      name: SATCOM Gateway
+      cbs_category: communications
+      safety_function: normal
+      ecu_zone: comms_closet
+      network_zone: zone_3
+      manufacturer: Demo Marine Electronics
+      firmware:
+        id: comms-01-fw-2024
+        version: '2024.1'
+        contains: []
+    - id: eng-01
+      name: Engine Control Unit
+      cbs_category: propulsion
+      safety_function: essential
+      ecu_zone: engine_room
+      network_zone: zone_2
+      manufacturer: Demo Marine Electronics
+      firmware:
+        id: eng-01-fw-2024
+        version: '2024.1'
+        contains: []
+  fleet-hold-06:
+    imo: IMO9991002
+    display_name: Fleet Hold 06
+    physical_assets:
+    - id: ecdis-01
+      name: ECDIS Workstation
+      cbs_category: navigation
+      safety_function: essential
+      ecu_zone: bridge_nav
+      network_zone: zone_1
+      manufacturer: Demo Marine Electronics
+      firmware:
+        id: ecdis-01-fw-2024
+        version: '2024.1'
+        contains:
+        - purl: pkg:maven/org.apache.logging.log4j/log4j-core@2.14.1
+          component_name: log4j-core
+    - id: radar-01
+      name: X-Band Radar Processor
+      cbs_category: navigation
+      safety_function: important
+      ecu_zone: ''
+      network_zone: ''
+      manufacturer: Demo Marine Electronics
+      firmware:
+        id: radar-01-fw-2024
+        version: '2024.1'
+        contains:
+        - purl: pkg:maven/org.springframework/spring-core@5.3.39
+          component_name: spring-core
+    - id: vdr-01
+      name: Voyage Data Recorder
+      cbs_category: navigation
+      safety_function: essential
+      ecu_zone: bridge_nav
+      network_zone: zone_1
+      manufacturer: Demo Marine Electronics
+      firmware:
+        id: vdr-01-fw-2024
+        version: '2024.1'
+        contains: []
+    - id: ams-01
+      name: Alarm Management Server
+      cbs_category: other
+      safety_function: important
+      ecu_zone: engine_room
+      network_zone: zone_2
+      manufacturer: Demo Marine Electronics
+      firmware:
+        id: ams-01-fw-2024
+        version: '2024.1'
+        contains: []
+    - id: comms-01
+      name: SATCOM Gateway
+      cbs_category: communications
+      safety_function: normal
+      ecu_zone: comms_closet
+      network_zone: zone_3
+      manufacturer: Demo Marine Electronics
+      firmware:
+        id: comms-01-fw-2024
+        version: '2024.1'
+        contains: []
+    - id: eng-01
+      name: Engine Control Unit
+      cbs_category: propulsion
+      safety_function: essential
+      ecu_zone: engine_room
+      network_zone: zone_2
+      manufacturer: Demo Marine Electronics
+      firmware:
+        id: eng-01-fw-2024
+        version: '2024.1'
+        contains: []
+  fleet-hold-03:
+    imo: IMO9991003
+    display_name: Fleet Hold 03
+    physical_assets:
+    - id: ecdis-01
+      name: ECDIS Workstation
+      cbs_category: navigation
+      safety_function: essential
+      ecu_zone: bridge_nav
+      network_zone: zone_1
+      manufacturer: Demo Marine Electronics
+      firmware:
+        id: ecdis-01-fw-2024
+        version: '2024.1'
+        contains:
+        - purl: pkg:maven/org.apache.logging.log4j/log4j-core@2.14.1
+          component_name: log4j-core
+    - id: radar-01
+      name: X-Band Radar Processor
+      cbs_category: navigation
+      safety_function: important
+      ecu_zone: bridge_nav
+      network_zone: zone_1
+      manufacturer: Demo Marine Electronics
+      firmware:
+        id: radar-01-fw-2024
+        version: '2024.1'
+        contains:
+        - purl: pkg:maven/org.springframework/spring-core@5.3.39
+          component_name: spring-core
+    - id: vdr-01
+      name: Voyage Data Recorder
+      cbs_category: navigation
+      safety_function: essential
+      ecu_zone: bridge_nav
+      network_zone: zone_1
+      manufacturer: Demo Marine Electronics
+      firmware:
+        id: vdr-01-fw-2024
+        version: '2024.1'
+        contains: []
+    - id: ams-01
+      name: Alarm Management Server
+      cbs_category: other
+      safety_function: important
+      ecu_zone: engine_room
+      network_zone: zone_2
+      manufacturer: Demo Marine Electronics
+      firmware:
+        id: ams-01-fw-2024
+        version: '2024.1'
+        contains: []
+    - id: comms-01
+      name: SATCOM Gateway
+      cbs_category: communications
+      safety_function: normal
+      ecu_zone: comms_closet
+      network_zone: zone_3
+      manufacturer: Demo Marine Electronics
+      firmware:
+        id: comms-01-fw-2024
+        version: '2024.1'
+        contains: []
+    - id: eng-01
+      name: Engine Control Unit
+      cbs_category: propulsion
+      safety_function: essential
+      ecu_zone: engine_room
+      network_zone: zone_2
+      manufacturer: Demo Marine Electronics
+      firmware:
+        id: eng-01-fw-2024
+        version: '2024.1'
+        contains: []
+  fleet-pass-03:
+    imo: IMO9991004
+    display_name: Fleet Pass 03
+    physical_assets:
+    - id: ecdis-01
+      name: ECDIS Workstation
+      cbs_category: navigation
+      safety_function: essential
+      ecu_zone: bridge_nav
+      network_zone: zone_1
+      manufacturer: Demo Marine Electronics
+      firmware:
+        id: ecdis-01-fw-2024
+        version: '2024.1'
+        contains:
+        - purl: pkg:maven/org.apache.logging.log4j/log4j-core@2.23.1
+          component_name: log4j-core
+    - id: radar-01
+      name: X-Band Radar Processor
+      cbs_category: navigation
+      safety_function: important
+      ecu_zone: bridge_nav
+      network_zone: zone_1
+      manufacturer: Demo Marine Electronics
+      firmware:
+        id: radar-01-fw-2024
+        version: '2024.1'
+        contains:
+        - purl: pkg:maven/org.springframework/spring-core@5.3.39
+          component_name: spring-core
+    - id: vdr-01
+      name: Voyage Data Recorder
+      cbs_category: navigation
+      safety_function: essential
+      ecu_zone: bridge_nav
+      network_zone: zone_1
+      manufacturer: Demo Marine Electronics
+      firmware:
+        id: vdr-01-fw-2024
+        version: '2024.1'
+        contains: []
+    - id: ams-01
+      name: Alarm Management Server
+      cbs_category: other
+      safety_function: important
+      ecu_zone: engine_room
+      network_zone: zone_2
+      manufacturer: Demo Marine Electronics
+      firmware:
+        id: ams-01-fw-2024
+        version: '2024.1'
+        contains: []
+    - id: comms-01
+      name: SATCOM Gateway
+      cbs_category: communications
+      safety_function: normal
+      ecu_zone: comms_closet
+      network_zone: zone_3
+      manufacturer: Demo Marine Electronics
+      firmware:
+        id: comms-01-fw-2024
+        version: '2024.1'
+        contains: []
+    - id: eng-01
+      name: Engine Control Unit
+      cbs_category: propulsion
+      safety_function: essential
+      ecu_zone: engine_room
+      network_zone: zone_2
+      manufacturer: Demo Marine Electronics
+      firmware:
+        id: eng-01-fw-2024
+        version: '2024.1'
+        contains: []
+  fleet-pass-04:
+    imo: IMO9991005
+    display_name: Fleet Pass 04
+    physical_assets:
+    - id: ecdis-01
+      name: ECDIS Workstation
+      cbs_category: navigation
+      safety_function: essential
+      ecu_zone: bridge_nav
+      network_zone: zone_1
+      manufacturer: Demo Marine Electronics
+      firmware:
+        id: ecdis-01-fw-2024
+        version: '2024.1'
+        contains:
+        - purl: pkg:maven/org.apache.logging.log4j/log4j-core@2.23.1
+          component_name: log4j-core
+    - id: radar-01
+      name: X-Band Radar Processor
+      cbs_category: navigation
+      safety_function: important
+      ecu_zone: bridge_nav
+      network_zone: zone_1
+      manufacturer: Demo Marine Electronics
+      firmware:
+        id: radar-01-fw-2024
+        version: '2024.1'
+        contains:
+        - purl: pkg:maven/org.springframework/spring-core@5.3.39
+          component_name: spring-core
+    - id: vdr-01
+      name: Voyage Data Recorder
+      cbs_category: navigation
+      safety_function: essential
+      ecu_zone: bridge_nav
+      network_zone: zone_1
+      manufacturer: Demo Marine Electronics
+      firmware:
+        id: vdr-01-fw-2024
+        version: '2024.1'
+        contains: []
+    - id: ams-01
+      name: Alarm Management Server
+      cbs_category: other
+      safety_function: important
+      ecu_zone: engine_room
+      network_zone: zone_2
+      manufacturer: Demo Marine Electronics
+      firmware:
+        id: ams-01-fw-2024
+        version: '2024.1'
+        contains: []
+    - id: comms-01
+      name: SATCOM Gateway
+      cbs_category: communications
+      safety_function: normal
+      ecu_zone: comms_closet
+      network_zone: zone_3
+      manufacturer: Demo Marine Electronics
+      firmware:
+        id: comms-01-fw-2024
+        version: '2024.1'
+        contains: []
+    - id: eng-01
+      name: Engine Control Unit
+      cbs_category: propulsion
+      safety_function: essential
+      ecu_zone: engine_room
+      network_zone: zone_2
+      manufacturer: Demo Marine Electronics
+      firmware:
+        id: eng-01-fw-2024
+        version: '2024.1'
+        contains: []
+  fleet-pass-01:
+    imo: IMO9991006
+    display_name: Fleet Pass 01
+    physical_assets:
+    - id: ecdis-01
+      name: ECDIS Workstation
+      cbs_category: navigation
+      safety_function: essential
+      ecu_zone: bridge_nav
+      network_zone: zone_1
+      manufacturer: Demo Marine Electronics
+      firmware:
+        id: ecdis-01-fw-2024
+        version: '2024.1'
+        contains:
+        - purl: pkg:maven/org.apache.logging.log4j/log4j-core@2.23.1
+          component_name: log4j-core
+    - id: radar-01
+      name: X-Band Radar Processor
+      cbs_category: navigation
+      safety_function: important
+      ecu_zone: bridge_nav
+      network_zone: zone_1
+      manufacturer: Demo Marine Electronics
+      firmware:
+        id: radar-01-fw-2024
+        version: '2024.1'
+        contains:
+        - purl: pkg:maven/org.springframework/spring-core@5.3.39
+          component_name: spring-core
+    - id: vdr-01
+      name: Voyage Data Recorder
+      cbs_category: navigation
+      safety_function: essential
+      ecu_zone: bridge_nav
+      network_zone: zone_1
+      manufacturer: Demo Marine Electronics
+      firmware:
+        id: vdr-01-fw-2024
+        version: '2024.1'
+        contains: []
+    - id: ams-01
+      name: Alarm Management Server
+      cbs_category: other
+      safety_function: important
+      ecu_zone: engine_room
+      network_zone: zone_2
+      manufacturer: Demo Marine Electronics
+      firmware:
+        id: ams-01-fw-2024
+        version: '2024.1'
+        contains: []
+    - id: comms-01
+      name: SATCOM Gateway
+      cbs_category: communications
+      safety_function: normal
+      ecu_zone: comms_closet
+      network_zone: zone_3
+      manufacturer: Demo Marine Electronics
+      firmware:
+        id: comms-01-fw-2024
+        version: '2024.1'
+        contains: []
+    - id: eng-01
+      name: Engine Control Unit
+      cbs_category: propulsion
+      safety_function: essential
+      ecu_zone: engine_room
+      network_zone: zone_2
+      manufacturer: Demo Marine Electronics
+      firmware:
+        id: eng-01-fw-2024
+        version: '2024.1'
+        contains: []
+  fleet-pass-06:
+    imo: IMO9991007
+    display_name: Fleet Pass 06
+    physical_assets:
+    - id: ecdis-01
+      name: ECDIS Workstation
+      cbs_category: navigation
+      safety_function: essential
+      ecu_zone: bridge_nav
+      network_zone: zone_1
+      manufacturer: Demo Marine Electronics
+      firmware:
+        id: ecdis-01-fw-2024
+        version: '2024.1'
+        contains:
+        - purl: pkg:maven/org.apache.logging.log4j/log4j-core@2.23.1
+          component_name: log4j-core
+    - id: radar-01
+      name: X-Band Radar Processor
+      cbs_category: navigation
+      safety_function: important
+      ecu_zone: bridge_nav
+      network_zone: zone_1
+      manufacturer: Demo Marine Electronics
+      firmware:
+        id: radar-01-fw-2024
+        version: '2024.1'
+        contains:
+        - purl: pkg:maven/org.springframework/spring-core@5.3.39
+          component_name: spring-core
+    - id: vdr-01
+      name: Voyage Data Recorder
+      cbs_category: navigation
+      safety_function: essential
+      ecu_zone: bridge_nav
+      network_zone: zone_1
+      manufacturer: Demo Marine Electronics
+      firmware:
+        id: vdr-01-fw-2024
+        version: '2024.1'
+        contains: []
+    - id: ams-01
+      name: Alarm Management Server
+      cbs_category: other
+      safety_function: important
+      ecu_zone: engine_room
+      network_zone: zone_2
+      manufacturer: Demo Marine Electronics
+      firmware:
+        id: ams-01-fw-2024
+        version: '2024.1'
+        contains: []
+    - id: comms-01
+      name: SATCOM Gateway
+      cbs_category: communications
+      safety_function: normal
+      ecu_zone: comms_closet
+      network_zone: zone_3
+      manufacturer: Demo Marine Electronics
+      firmware:
+        id: comms-01-fw-2024
+        version: '2024.1'
+        contains: []
+    - id: eng-01
+      name: Engine Control Unit
+      cbs_category: propulsion
+      safety_function: essential
+      ecu_zone: engine_room
+      network_zone: zone_2
+      manufacturer: Demo Marine Electronics
+      firmware:
+        id: eng-01-fw-2024
+        version: '2024.1'
+        contains: []
+  fleet-hold-04:
+    imo: IMO9991008
+    display_name: Fleet Hold 04
+    physical_assets:
+    - id: ecdis-01
+      name: ECDIS Workstation
+      cbs_category: navigation
+      safety_function: essential
+      ecu_zone: bridge_nav
+      network_zone: zone_1
+      manufacturer: Demo Marine Electronics
+      firmware:
+        id: ecdis-01-fw-2024
+        version: '2024.1'
+        contains:
+        - purl: pkg:maven/org.apache.logging.log4j/log4j-core@2.14.1
+          component_name: log4j-core
+    - id: radar-01
+      name: X-Band Radar Processor
+      cbs_category: navigation
+      safety_function: important
+      ecu_zone: bridge_nav
+      network_zone: zone_1
+      manufacturer: Demo Marine Electronics
+      firmware:
+        id: radar-01-fw-2024
+        version: '2024.1'
+        contains:
+        - purl: pkg:maven/org.springframework/spring-core@5.3.39
+          component_name: spring-core
+    - id: vdr-01
+      name: Voyage Data Recorder
+      cbs_category: navigation
+      safety_function: essential
+      ecu_zone: bridge_nav
+      network_zone: zone_1
+      manufacturer: Demo Marine Electronics
+      firmware:
+        id: vdr-01-fw-2024
+        version: '2024.1'
+        contains: []
+    - id: ams-01
+      name: Alarm Management Server
+      cbs_category: other
+      safety_function: important
+      ecu_zone: engine_room
+      network_zone: zone_2
+      manufacturer: Demo Marine Electronics
+      firmware:
+        id: ams-01-fw-2024
+        version: '2024.1'
+        contains: []
+    - id: comms-01
+      name: SATCOM Gateway
+      cbs_category: communications
+      safety_function: normal
+      ecu_zone: comms_closet
+      network_zone: zone_3
+      manufacturer: Demo Marine Electronics
+      firmware:
+        id: comms-01-fw-2024
+        version: '2024.1'
+        contains: []
+    - id: eng-01
+      name: Engine Control Unit
+      cbs_category: propulsion
+      safety_function: essential
+      ecu_zone: engine_room
+      network_zone: zone_2
+      manufacturer: Demo Marine Electronics
+      firmware:
+        id: eng-01-fw-2024
+        version: '2024.1'
+        contains: []
+  fleet-hold-05:
+    imo: IMO9991009
+    display_name: Fleet Hold 05
+    physical_assets:
+    - id: ecdis-01
+      name: ECDIS Workstation
+      cbs_category: navigation
+      safety_function: essential
+      ecu_zone: bridge_nav
+      network_zone: zone_1
+      manufacturer: Demo Marine Electronics
+      firmware:
+        id: ecdis-01-fw-2024
+        version: '2024.1'
+        contains:
+        - purl: pkg:maven/org.apache.logging.log4j/log4j-core@2.14.1
+          component_name: log4j-core
+    - id: radar-01
+      name: X-Band Radar Processor
+      cbs_category: navigation
+      safety_function: important
+      ecu_zone: bridge_nav
+      network_zone: zone_1
+      manufacturer: Demo Marine Electronics
+      firmware:
+        id: radar-01-fw-2024
+        version: '2024.1'
+        contains:
+        - purl: pkg:maven/org.springframework/spring-core@5.3.39
+          component_name: spring-core
+    - id: vdr-01
+      name: Voyage Data Recorder
+      cbs_category: navigation
+      safety_function: essential
+      ecu_zone: bridge_nav
+      network_zone: zone_1
+      manufacturer: Demo Marine Electronics
+      firmware:
+        id: vdr-01-fw-2024
+        version: '2024.1'
+        contains: []
+    - id: ams-01
+      name: Alarm Management Server
+      cbs_category: other
+      safety_function: important
+      ecu_zone: engine_room
+      network_zone: zone_2
+      manufacturer: Demo Marine Electronics
+      firmware:
+        id: ams-01-fw-2024
+        version: '2024.1'
+        contains: []
+    - id: comms-01
+      name: SATCOM Gateway
+      cbs_category: communications
+      safety_function: normal
+      ecu_zone: comms_closet
+      network_zone: zone_3
+      manufacturer: Demo Marine Electronics
+      firmware:
+        id: comms-01-fw-2024
+        version: '2024.1'
+        contains: []
+    - id: eng-01
+      name: Engine Control Unit
+      cbs_category: propulsion
+      safety_function: essential
+      ecu_zone: engine_room
+      network_zone: zone_2
+      manufacturer: Demo Marine Electronics
+      firmware:
+        id: eng-01-fw-2024
+        version: '2024.1'
+        contains: []
+  fleet-hold-01:
+    imo: IMO9991010
+    display_name: Fleet Hold 01
+    physical_assets:
+    - id: ecdis-01
+      name: ECDIS Workstation
+      cbs_category: navigation
+      safety_function: essential
+      ecu_zone: bridge_nav
+      network_zone: zone_1
+      manufacturer: Demo Marine Electronics
+      firmware:
+        id: ecdis-01-fw-2024
+        version: '2024.1'
+        contains:
+        - purl: pkg:maven/org.apache.logging.log4j/log4j-core@2.14.1
+          component_name: log4j-core
+    - id: radar-01
+      name: X-Band Radar Processor
+      cbs_category: navigation
+      safety_function: important
+      ecu_zone: bridge_nav
+      network_zone: zone_1
+      manufacturer: Demo Marine Electronics
+      firmware:
+        id: radar-01-fw-2024
+        version: '2024.1'
+        contains:
+        - purl: pkg:maven/org.springframework/spring-core@5.3.39
+          component_name: spring-core
+    - id: vdr-01
+      name: Voyage Data Recorder
+      cbs_category: navigation
+      safety_function: essential
+      ecu_zone: bridge_nav
+      network_zone: zone_1
+      manufacturer: Demo Marine Electronics
+      firmware:
+        id: vdr-01-fw-2024
+        version: '2024.1'
+        contains: []
+    - id: ams-01
+      name: Alarm Management Server
+      cbs_category: other
+      safety_function: important
+      ecu_zone: engine_room
+      network_zone: zone_2
+      manufacturer: Demo Marine Electronics
+      firmware:
+        id: ams-01-fw-2024
+        version: '2024.1'
+        contains: []
+    - id: comms-01
+      name: SATCOM Gateway
+      cbs_category: communications
+      safety_function: normal
+      ecu_zone: comms_closet
+      network_zone: zone_3
+      manufacturer: Demo Marine Electronics
+      firmware:
+        id: comms-01-fw-2024
+        version: '2024.1'
+        contains: []
+    - id: eng-01
+      name: Engine Control Unit
+      cbs_category: propulsion
+      safety_function: essential
+      ecu_zone: engine_room
+      network_zone: zone_2
+      manufacturer: Demo Marine Electronics
+      firmware:
+        id: eng-01-fw-2024
+        version: '2024.1'
+        contains: []
+  fleet-hold-02:
+    imo: IMO9991011
+    display_name: Fleet Hold 02
+    physical_assets:
+    - id: ecdis-01
+      name: ECDIS Workstation
+      cbs_category: navigation
+      safety_function: essential
+      ecu_zone: bridge_nav
+      network_zone: zone_1
+      manufacturer: Demo Marine Electronics
+      firmware:
+        id: ecdis-01-fw-2024
+        version: '2024.1'
+        contains:
+        - purl: pkg:maven/org.apache.logging.log4j/log4j-core@2.14.1
+          component_name: log4j-core
+    - id: radar-01
+      name: X-Band Radar Processor
+      cbs_category: navigation
+      safety_function: important
+      ecu_zone: bridge_nav
+      network_zone: zone_1
+      manufacturer: Demo Marine Electronics
+      firmware:
+        id: radar-01-fw-2024
+        version: '2024.1'
+        contains:
+        - purl: pkg:maven/org.springframework/spring-core@5.3.39
+          component_name: spring-core
+    - id: vdr-01
+      name: Voyage Data Recorder
+      cbs_category: navigation
+      safety_function: essential
+      ecu_zone: bridge_nav
+      network_zone: zone_1
+      manufacturer: Demo Marine Electronics
+      firmware:
+        id: vdr-01-fw-2024
+        version: '2024.1'
+        contains: []
+    - id: ams-01
+      name: Alarm Management Server
+      cbs_category: other
+      safety_function: important
+      ecu_zone: engine_room
+      network_zone: zone_2
+      manufacturer: Demo Marine Electronics
+      firmware:
+        id: ams-01-fw-2024
+        version: '2024.1'
+        contains: []
+    - id: comms-01
+      name: SATCOM Gateway
+      cbs_category: communications
+      safety_function: normal
+      ecu_zone: comms_closet
+      network_zone: zone_3
+      manufacturer: Demo Marine Electronics
+      firmware:
+        id: comms-01-fw-2024
+        version: '2024.1'
+        contains: []
+    - id: eng-01
+      name: Engine Control Unit
+      cbs_category: propulsion
+      safety_function: essential
+      ecu_zone: engine_room
+      network_zone: zone_2
+      manufacturer: Demo Marine Electronics
+      firmware:
+        id: eng-01-fw-2024
+        version: '2024.1'
+        contains: []
+  fleet-pass-05:
+    imo: IMO9991012
+    display_name: Fleet Pass 05
+    physical_assets:
+    - id: ecdis-01
+      name: ECDIS Workstation
+      cbs_category: navigation
+      safety_function: essential
+      ecu_zone: bridge_nav
+      network_zone: zone_1
+      manufacturer: Demo Marine Electronics
+      firmware:
+        id: ecdis-01-fw-2024
+        version: '2024.1'
+        contains:
+        - purl: pkg:maven/org.apache.logging.log4j/log4j-core@2.23.1
+          component_name: log4j-core
+    - id: radar-01
+      name: X-Band Radar Processor
+      cbs_category: navigation
+      safety_function: important
+      ecu_zone: bridge_nav
+      network_zone: zone_1
+      manufacturer: Demo Marine Electronics
+      firmware:
+        id: radar-01-fw-2024
+        version: '2024.1'
+        contains:
+        - purl: pkg:maven/org.springframework/spring-core@5.3.39
+          component_name: spring-core
+    - id: vdr-01
+      name: Voyage Data Recorder
+      cbs_category: navigation
+      safety_function: essential
+      ecu_zone: bridge_nav
+      network_zone: zone_1
+      manufacturer: Demo Marine Electronics
+      firmware:
+        id: vdr-01-fw-2024
+        version: '2024.1'
+        contains: []
+    - id: ams-01
+      name: Alarm Management Server
+      cbs_category: other
+      safety_function: important
+      ecu_zone: engine_room
+      network_zone: zone_2
+      manufacturer: Demo Marine Electronics
+      firmware:
+        id: ams-01-fw-2024
+        version: '2024.1'
+        contains: []
+    - id: comms-01
+      name: SATCOM Gateway
+      cbs_category: communications
+      safety_function: normal
+      ecu_zone: comms_closet
+      network_zone: zone_3
+      manufacturer: Demo Marine Electronics
+      firmware:
+        id: comms-01-fw-2024
+        version: '2024.1'
+        contains: []
+    - id: eng-01
+      name: Engine Control Unit
+      cbs_category: propulsion
+      safety_function: essential
+      ecu_zone: engine_room
+      network_zone: zone_2
+      manufacturer: Demo Marine Electronics
+      firmware:
+        id: eng-01-fw-2024
+        version: '2024.1'
+        contains: []

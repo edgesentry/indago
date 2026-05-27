@@ -23,6 +23,23 @@ def file_sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+def audit_path_label(path: Path) -> str:
+    """Stable path for manifests and decision_hash (repo-relative when under repo root)."""
+    resolved = path.resolve()
+    try:
+        return resolved.relative_to(_REPO_ROOT.resolve()).as_posix()
+    except ValueError:
+        return resolved.as_posix()
+
+
+def resolve_audit_path(label: str) -> Path:
+    """Resolve a path label from build_bom_baseline_ref / build_cve_snapshot_ref."""
+    candidate = Path(label)
+    if candidate.is_absolute():
+        return candidate
+    return _REPO_ROOT / candidate
+
+
 def build_bom_baseline_ref(
     vessel_key: str,
     *,
@@ -33,9 +50,9 @@ def build_bom_baseline_ref(
     sbom_dir_path = Path(sbom_dir or DEFAULT_SBOM_DIR)
     sbom_path = sbom_dir_path / f"{vessel_key}.json"
     return {
-        "asset_map_path": str(asset_map.resolve()),
+        "asset_map_path": audit_path_label(asset_map),
         "asset_map_sha256": file_sha256(asset_map),
-        "sbom_path": str(sbom_path.resolve()),
+        "sbom_path": audit_path_label(sbom_path),
         "sbom_sha256": file_sha256(sbom_path),
     }
 
@@ -43,7 +60,7 @@ def build_bom_baseline_ref(
 def build_cve_snapshot_ref(*, cve_snapshot_path: Path | None = None) -> dict[str, Any]:
     cve_path = Path(cve_snapshot_path or DEFAULT_CVE_SNAPSHOT)
     return {
-        "cve_snapshot_path": str(cve_path.resolve()),
+        "cve_snapshot_path": audit_path_label(cve_path),
         "cve_snapshot_sha256": file_sha256(cve_path),
     }
 
