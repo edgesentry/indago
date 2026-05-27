@@ -32,6 +32,8 @@ from pipelines.maritime_cyber.graph import (
     write_graph_parquet,
 )
 
+from agents.port_clearance.worm_store import publish_clearance_run  # noqa: E402
+
 _REPO_ROOT = Path(__file__).resolve().parents[2]
 _PROFILE_MANIFEST = _REPO_ROOT / "profiles" / "maritime_cyber" / "manifest.yaml"
 _DEFAULT_EDS_REL = _REPO_ROOT.parent / "edgesentry-rs" / "target" / "debug" / "eds"
@@ -53,6 +55,7 @@ class ClearanceRunResult:
     html_path: Path | None
     chain_path: Path | None
     verify_url: str
+    worm_publish_path: Path | None
 
 
 def load_profile_manifest(path: Path | None = None) -> dict[str, Any]:
@@ -170,6 +173,8 @@ def run_clearance(
     device_id: str = "port-clearance-poc",
     skip_render: bool = False,
     skip_seal: bool = False,
+    skip_worm: bool = False,
+    worm_root: Path | None = None,
     prior_decision_hash: str | None = None,
     lifecycle_event: str | None = None,
 ) -> ClearanceRunResult:
@@ -200,6 +205,7 @@ def run_clearance(
     artifact_paths = write_evaluation_artifacts(eval_result, out)
     facts_path = artifact_paths["facts"]
     manifest_path = artifact_paths["manifest"]
+    integrated_snapshot_path = artifact_paths.get("integrated_snapshot")
 
     url = verify_url or _default_verify_url(eval_result.decision_hash)
     prefix = f"{vessel_key}_{port_call_id}".replace("/", "-")
@@ -285,6 +291,20 @@ def run_clearance(
         summary["lifecycle_event"] = lifecycle_event
     if prior_decision_hash:
         summary["prior_decision_hash"] = prior_decision_hash
+
+    worm_publish_path: Path | None = None
+    if not skip_worm:
+        worm_record = publish_clearance_run(
+            out,
+            prefix=prefix,
+            manifest_path=manifest_path,
+            integrated_snapshot_path=integrated_snapshot_path,
+            chain_path=chain_path,
+            worm_root=worm_root,
+        )
+        worm_publish_path = Path(worm_record["publish_record_path"])
+        summary["worm_publish"] = worm_record
+
     (out / f"{prefix}_run_summary.json").write_text(
         json.dumps(summary, indent=2),
         encoding="utf-8",
@@ -303,6 +323,7 @@ def run_clearance(
         html_path=html_path,
         chain_path=chain_path,
         verify_url=url,
+        worm_publish_path=worm_publish_path,
     )
 
 
@@ -347,6 +368,8 @@ def run_hold_to_pass_scenario(
     device_id: str = "port-clearance-poc",
     skip_render: bool = False,
     skip_seal: bool = False,
+    skip_worm: bool = False,
+    worm_root: Path | None = None,
 ) -> dict[str, Any]:
     """D1: E7 -> E9 -> E10 -> re-E7 — hold, domino query, remediation, pass."""
     if vessel_key != "vessel-hold":
@@ -372,6 +395,8 @@ def run_hold_to_pass_scenario(
         device_id=device_id,
         skip_render=skip_render,
         skip_seal=skip_seal,
+        skip_worm=skip_worm,
+        worm_root=worm_root,
         lifecycle_event="E7",
     )
 
@@ -418,6 +443,8 @@ def run_hold_to_pass_scenario(
         device_id=device_id,
         skip_render=skip_render,
         skip_seal=skip_seal,
+        skip_worm=skip_worm,
+        worm_root=worm_root,
         prior_decision_hash=baseline.decision_hash,
         lifecycle_event="E7",
     )
@@ -533,6 +560,16 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--device-id", default="port-clearance-poc")
     parser.add_argument("--skip-render", action="store_true", help="Skip HTML certificate")
     parser.add_argument("--skip-seal", action="store_true", help="Skip audit sign-clearance")
+    parser.add_argument(
+        "--skip-worm",
+        action="store_true",
+        help="Skip mock WORM publish (G11 immutable retention demo)",
+    )
+    parser.add_argument(
+        "--worm-root",
+        type=Path,
+        help="Mock WORM store root (default: CLEARANCE_WORM_ROOT or data/processed/.../worm_store/clearance)",
+    )
     parser.add_argument("--json", action="store_true", help="Print run summary JSON to stdout")
     args = parser.parse_args(argv)
 
@@ -561,6 +598,8 @@ def main(argv: list[str] | None = None) -> int:
                 device_id=args.device_id,
                 skip_render=args.skip_render,
                 skip_seal=args.skip_seal,
+                skip_worm=args.skip_worm,
+                worm_root=args.worm_root,
             )
         except (FileNotFoundError, RuntimeError, ValueError) as exc:
             print(f"error: {exc}", file=sys.stderr)
@@ -578,6 +617,10 @@ def main(argv: list[str] | None = None) -> int:
         print(f"re-E7 remediated.outcome: {remediated.outcome}")
         print(f"re-E7 remediated.decision_hash: {remediated.decision_hash}")
         print(f"scenario_summary: {results['scenario_summary_path']}")
+        if baseline.worm_publish_path:
+            print(f"baseline.worm_publish: {baseline.worm_publish_path}")
+        if remediated.worm_publish_path:
+            print(f"remediated.worm_publish: {remediated.worm_publish_path}")
 
         try:
             eds = None if args.skip_seal else find_eds_binary(args.eds_bin)
@@ -603,6 +646,8 @@ def main(argv: list[str] | None = None) -> int:
             device_id=args.device_id,
             skip_render=args.skip_render,
             skip_seal=args.skip_seal,
+            skip_worm=args.skip_worm,
+            worm_root=args.worm_root,
         )
     except (FileNotFoundError, RuntimeError) as exc:
         print(f"error: {exc}", file=sys.stderr)
@@ -631,6 +676,8 @@ def main(argv: list[str] | None = None) -> int:
             print(f"html: {result.html_path}")
         if result.chain_path:
             print(f"chain: {result.chain_path}")
+        if result.worm_publish_path:
+            print(f"worm_publish: {result.worm_publish_path}")
 
     try:
         eds = None if args.skip_seal else find_eds_binary(args.eds_bin)
