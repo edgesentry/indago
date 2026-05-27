@@ -17,6 +17,21 @@ from pipelines.maritime_cyber.graph import (
 
 _REPO_ROOT = Path(__file__).resolve().parents[1]
 _DOCUMARIS_DIST = _REPO_ROOT.parent / "documaris" / "dist"
+_CAPVISTA_SUBMISSION_ARTEFACTS = (
+    _REPO_ROOT.parent
+    / "edgesentry-commercial"
+    / "docs/programs/20260630-capvista-products/submission/artefacts"
+)
+
+
+def _copy_impacted_path_html(html_path: Path, vessel_key: str, dest_dir: Path) -> Path | None:
+    """Copy HTML to an external bundle dir when the parent repo exists."""
+    if not dest_dir.parent.is_dir():
+        return None
+    dest_dir.mkdir(parents=True, exist_ok=True)
+    dest_html = dest_dir / f"{vessel_key}_impacted-path.html"
+    dest_html.write_text(html_path.read_text(encoding="utf-8"), encoding="utf-8")
+    return dest_html
 _POC_DISCLAIMER = (
     "PoC: public CVE snapshot and synthetic SBOM/asset_map fixtures. "
     "Not an official port-state or MPA berth approval."
@@ -163,6 +178,7 @@ def write_vessel_graph_artifacts(
     cve_snapshot_path: Path | None = None,
     sbom_dir: Path | None = None,
     copy_to_documaris_dist: bool = False,
+    copy_to_capvista_submission: bool = False,
 ) -> dict[str, Path]:
     """Write JSON + HTML impacted-path exports; return paths."""
     paths = impacted_paths
@@ -194,11 +210,15 @@ def write_vessel_graph_artifacts(
 
     result = {"json": json_path, "html": html_path}
 
-    if copy_to_documaris_dist and _DOCUMARIS_DIST.parent.is_dir():
-        _DOCUMARIS_DIST.mkdir(parents=True, exist_ok=True)
-        dist_html = _DOCUMARIS_DIST / f"{vessel_key}_impacted-path.html"
-        dist_html.write_text(html_path.read_text(encoding="utf-8"), encoding="utf-8")
-        result["documaris_dist_html"] = dist_html
+    if copy_to_documaris_dist:
+        copied = _copy_impacted_path_html(html_path, vessel_key, _DOCUMARIS_DIST)
+        if copied:
+            result["documaris_dist_html"] = copied
+
+    if copy_to_capvista_submission:
+        copied = _copy_impacted_path_html(html_path, vessel_key, _CAPVISTA_SUBMISSION_ARTEFACTS)
+        if copied:
+            result["capvista_submission_html"] = copied
 
     return result
 
@@ -212,6 +232,11 @@ def main(argv: list[str] | None = None) -> int:
         "--copy-to-documaris-dist",
         action="store_true",
         help="Also write documaris/dist/<vessel>_impacted-path.html",
+    )
+    parser.add_argument(
+        "--copy-to-capvista-submission",
+        action="store_true",
+        help="Also write edgesentry-commercial/.../submission/artefacts/<vessel>_impacted-path.html",
     )
     parser.add_argument("--json", action="store_true", help="Print paths JSON to stdout")
     args = parser.parse_args(argv)
@@ -234,6 +259,7 @@ def main(argv: list[str] | None = None) -> int:
         port_call_id=args.port_call_id,
         outcome=eval_result.outcome,
         copy_to_documaris_dist=args.copy_to_documaris_dist,
+        copy_to_capvista_submission=args.copy_to_capvista_submission,
     )
     if args.json:
         print(json.dumps(json.loads(paths["json"].read_text(encoding="utf-8")), indent=2))

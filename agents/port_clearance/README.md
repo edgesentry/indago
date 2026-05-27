@@ -56,11 +56,14 @@ uv run python -m agents.port_clearance.run_clearance vessel-hold --skip-worm
 # Skip impacted-path export (D4)
 uv run python -m agents.port_clearance.run_clearance vessel-hold --skip-graph-export
 
-# Copy impacted-path HTML to documaris/dist (D4 demo bundle)
+# Copy impacted-path HTML to documaris/dist and/or commercial submission/artefacts
 uv run python -m agents.port_clearance.run_clearance vessel-hold --copy-graph-to-documaris
+uv run python -m agents.port_clearance.run_clearance vessel-hold --copy-graph-to-capvista-submission
 
-# D4 only (standalone export + optional documaris/dist copy)
-uv run python -m pipelines.export_vessel_graph vessel-hold --copy-to-documaris-dist
+# D4 only (standalone export)
+uv run python -m pipelines.export_vessel_graph vessel-hold \
+  --copy-to-documaris-dist \
+  --copy-to-capvista-submission
 
 # Machine-readable summary
 uv run python -m agents.port_clearance.run_clearance vessel-hold --json
