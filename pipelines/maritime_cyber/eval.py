@@ -19,6 +19,11 @@ from pipelines.maritime_cyber.graph import (
     build_maritime_cyber_graph,
     load_sbom,
 )
+from pipelines.maritime_cyber.audit_refs import (
+    build_bom_baseline_ref,
+    build_cve_snapshot_ref,
+    integrated_snapshot_fingerprint,
+)
 from pipelines.maritime_cyber.rules import DEFAULT_RULE_PACK, load_asset_map, load_rule_pack
 
 _REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -111,6 +116,36 @@ def iter_cve_asset_paths(
                         }
                     )
     return paths
+
+
+def format_impacted_paths(cve_paths: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """G12: structured paths for auditors (component → CVE → asset → vessel)."""
+    formatted: list[dict[str, Any]] = []
+    for p in cve_paths:
+        asset = p.get("asset") or {}
+        component = p.get("component") or {}
+        cve = p.get("cve") or {}
+        formatted.append(
+            {
+                "vessel_id": p.get("vessel_id"),
+                "asset_id": p.get("asset_id"),
+                "asset_name": asset.get("name"),
+                "firmware_id": p.get("firmware_id"),
+                "component_id": p.get("component_id"),
+                "component_name": component.get("name"),
+                "component_purl": component.get("purl"),
+                "cve_id": p.get("cve_id"),
+                "cve_osv_id": cve.get("osv_id"),
+                "cvss_score": cve.get("cvss_score"),
+                "path_nodes": [
+                    p.get("asset_id"),
+                    p.get("firmware_id"),
+                    p.get("component_id"),
+                    p.get("cve_id"),
+                ],
+            }
+        )
+    return formatted
 
 
 def _match_cve_on_asset_path(path: dict[str, Any], match: dict[str, Any]) -> bool:
@@ -290,21 +325,33 @@ def evaluate_port_clearance(
     hold_outcomes = {h.outcome for h in hits if h.outcome == "hold"}
     outcome = "hold" if hold_outcomes else str(pack.get("default_outcome", "pass"))
 
-    cve_path = cve_snapshot_path or DEFAULT_CVE_SNAPSHOT
+    cve_path = Path(cve_snapshot_path or DEFAULT_CVE_SNAPSHOT)
     rule_path = rule_pack_path or DEFAULT_RULE_PACK
+    bom_baseline_ref = build_bom_baseline_ref(
+        vessel_key,
+        asset_map_path=asset_map_path,
+        sbom_dir=sbom_dir,
+    )
+    cve_snapshot_ref = build_cve_snapshot_ref(cve_snapshot_path=cve_path)
+    impacted_paths = format_impacted_paths(cve_paths)
+
     manifest = {
         "vessel_key": vessel_key,
         "port_call_id": port_call_id,
         "rule_pack_id": pack.get("pack_id"),
         "rule_pack_version": pack.get("version"),
         "rule_pack_sha256": _file_sha256(rule_path),
-        "cve_snapshot_sha256": _file_sha256(cve_path),
-        "sbom_sha256": _file_sha256(sbom_path) if sbom_path.is_file() else None,
+        "bom_baseline_ref": bom_baseline_ref,
+        "cve_snapshot_ref": cve_snapshot_ref,
+        "cve_snapshot_sha256": cve_snapshot_ref["cve_snapshot_sha256"],
+        "sbom_sha256": bom_baseline_ref["sbom_sha256"],
         "outcome": outcome,
         "rules_fired": [h.rule_id for h in hits],
         "graph_node_count": len(nodes),
         "graph_edge_count": len(gresult.edges),
+        "impacted_path_count": len(impacted_paths),
     }
+    manifest["integrated_snapshot_fingerprint"] = integrated_snapshot_fingerprint(manifest)
     decision_hash = _canonical_hash(manifest)
 
     paths_for_facts = [
@@ -324,6 +371,10 @@ def evaluate_port_clearance(
         "port_call_id": port_call_id,
         "outcome": outcome,
         "decision_hash": decision_hash,
+        "bom_baseline_ref": bom_baseline_ref,
+        "cve_snapshot_ref": cve_snapshot_ref,
+        "integrated_snapshot_fingerprint": manifest["integrated_snapshot_fingerprint"],
+        "impacted_paths": impacted_paths,
         "rules_fired": [
             {
                 "id": h.rule_id,
@@ -364,11 +415,23 @@ def write_evaluation_artifacts(
     facts_path = out / f"{prefix}_facts.json"
     manifest_path = out / f"{prefix}_evaluation_manifest.json"
     facts_path.write_text(json.dumps(result.facts, indent=2), encoding="utf-8")
-    manifest_path.write_text(
-        json.dumps({**result.manifest, "decision_hash": result.decision_hash}, indent=2),
-        encoding="utf-8",
-    )
-    return {"facts": facts_path, "manifest": manifest_path}
+    manifest_on_disk = {**result.manifest, "decision_hash": result.decision_hash}
+    manifest_path.write_text(json.dumps(manifest_on_disk, indent=2), encoding="utf-8")
+
+    snapshot_path = out / f"{prefix}_integrated_snapshot.json"
+    snapshot_body = {
+        "vessel_key": result.vessel_key,
+        "port_call_id": result.port_call_id,
+        "outcome": result.outcome,
+        "decision_hash": result.decision_hash,
+        "bom_baseline_ref": result.manifest.get("bom_baseline_ref"),
+        "cve_snapshot_ref": result.manifest.get("cve_snapshot_ref"),
+        "integrated_snapshot_fingerprint": result.manifest.get("integrated_snapshot_fingerprint"),
+        "impacted_paths": result.facts.get("impacted_paths"),
+    }
+    snapshot_path.write_text(json.dumps(snapshot_body, indent=2), encoding="utf-8")
+
+    return {"facts": facts_path, "manifest": manifest_path, "integrated_snapshot": snapshot_path}
 
 
 def affected_vessels(

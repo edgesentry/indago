@@ -20,6 +20,7 @@ from typing import Any
 
 import yaml
 
+from pipelines.maritime_cyber.audit_refs import build_bom_baseline_ref, build_cve_snapshot_ref
 from pipelines.maritime_cyber.eval import (
     affected_vessels,
     evaluate_port_clearance,
@@ -64,18 +65,6 @@ def load_profile_manifest(path: Path | None = None) -> dict[str, Any]:
     if not isinstance(data, dict):
         raise ValueError(f"invalid manifest YAML: {manifest_path}")
     return data
-
-
-def _file_sha256(path: Path) -> str | None:
-    if not path.is_file():
-        return None
-    import hashlib
-
-    h = hashlib.sha256()
-    with path.open("rb") as f:
-        for chunk in iter(lambda: f.read(1024 * 1024), b""):
-            h.update(chunk)
-    return h.hexdigest()
 
 
 def _eds_supports_clearance_audit(eds: Path) -> bool:
@@ -267,22 +256,12 @@ def run_clearance(
             eds=eds,
         )
 
-    # Audit-time references (PoC shape): frozen BOM baseline + CVE snapshot refs
-    resolved_asset_map = Path(asset_map_path) if asset_map_path else (_REPO_ROOT / "fixtures" / "asset_map.yaml")
-    resolved_cve_snapshot = Path(cve_snapshot_path) if cve_snapshot_path else (_REPO_ROOT / "fixtures" / "cve" / "snapshot-2026-05-26.json")
-    resolved_sbom_dir = Path(sbom_dir) if sbom_dir else (_REPO_ROOT / "fixtures" / "sbom")
-    resolved_sbom_path = resolved_sbom_dir / f"{vessel_key}.json"
-
-    bom_baseline_ref = {
-        "asset_map_path": str(resolved_asset_map),
-        "asset_map_sha256": _file_sha256(resolved_asset_map),
-        "sbom_path": str(resolved_sbom_path),
-        "sbom_sha256": _file_sha256(resolved_sbom_path),
-    }
-    cve_snapshot_ref = {
-        "cve_snapshot_path": str(resolved_cve_snapshot),
-        "cve_snapshot_sha256": _file_sha256(resolved_cve_snapshot),
-    }
+    bom_baseline_ref = build_bom_baseline_ref(
+        vessel_key,
+        asset_map_path=asset_map_path,
+        sbom_dir=sbom_dir,
+    )
+    cve_snapshot_ref = build_cve_snapshot_ref(cve_snapshot_path=cve_snapshot_path)
 
     # Persist run summary for W7 / demo tooling
     summary: dict[str, Any] = {
