@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import json
-
 import pytest
 
 from pipelines.maritime_cyber.eval import evaluate_port_clearance
