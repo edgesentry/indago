@@ -33,6 +33,12 @@ Runs daily via GitHub Actions across 5 regions. See [`/indago-run-pipeline`](htt
 - [ref-field-investigation.md](ref-field-investigation.md) — physical measurement tiers, VDES
 - [ref-triage-governance.md](ref-triage-governance.md) — human-in-the-loop review workflow
 
+## Cap Vista — Port Cyber Clearance (6/30)
+
+- [ref-maritime-cyber-capvista.md](ref-maritime-cyber-capvista.md) — **W0–W7** and **D1–D4** status, commands, tests
+- [agents/port_clearance/README.md](https://github.com/edgesentry/indago/blob/main/agents/port_clearance/README.md) — E2E operator guide (W6)
+- [profiles/maritime_cyber/README.md](https://github.com/edgesentry/indago/blob/main/profiles/maritime_cyber/README.md) — profile manifest
+
 ## Operations
 
 - [config/equasis/README.md](https://github.com/edgesentry/indago/blob/main/config/equasis/README.md) — Equasis ownership seed → graph edges (indago#169)

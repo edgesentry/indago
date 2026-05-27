@@ -4,8 +4,10 @@ Machine-readable rule packs for domain profiles. Each pack maps public regulator
 
 | Pack | Profile | Status |
 |------|---------|--------|
-| [sg-cyber-clearance-v0.yaml](sg-cyber-clearance-v0.yaml) | `maritime_cyber` | PoC — Cap Vista 6/30 |
+| [sg-cyber-clearance-v0.yaml](sg-cyber-clearance-v0.yaml) | `maritime_cyber` | **W0 done** — Cap Vista 6/30 PoC |
 
 **Traceability matrix:** [regulatory-requirements-matrix.md](https://github.com/edgesentry/edgesentry-commercial/blob/main/docs/programs/20260630-capvista-products/analysis/regulatory-requirements-matrix.md)
 
 **Loader:** `pipelines/maritime_cyber/rules.py`
+
+**Program:** [docs/ref-maritime-cyber-capvista.md](../docs/ref-maritime-cyber-capvista.md)

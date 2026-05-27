@@ -30,14 +30,18 @@ Multi-domain OSINT data layer. indago ingests raw signals from maritime, corpora
 | `scripts/notify_metrics.py` | Data-publish summary email |
 | `scripts/fetch_publish_metrics.py` | Fetch latest metrics from public R2 (no credentials) |
 | `config/sanction_regimes.yaml` | Configurable sanction regime definitions |
-| `profiles/maritime_cyber/` | Port Cyber Clearance ontology + manifest (Cap Vista PoC) |
-| `rules/sg-cyber-clearance-v0.yaml` | Singapore clearance rule pack (E26/E27-inspired) |
-| `fixtures/` | Maritime cyber PoC fixtures (`asset_map.yaml`, SBOM, CVE — W1+) |
-| `pipelines/maritime_cyber/` | Rule pack loader; graph build (`graph.py`); eval (W3) |
+| `profiles/maritime_cyber/` | Port Cyber Clearance profile (Cap Vista 6/30) — **W1** done |
+| `rules/sg-cyber-clearance-v0.yaml` | Singapore clearance rule pack — **W0** done |
+| `fixtures/` | Maritime cyber PoC fixtures — **W1** ([fixtures/README.md](fixtures/README.md)) |
+| `pipelines/maritime_cyber/` | Graph (**W2**), eval (**W3**), audit refs (**D2**) |
 | `pipelines/maritime_cyber_graph.py` | CLI — build graph Parquet under `data/processed/maritime_cyber/` |
 | `pipelines/port_clearance_eval.py` | CLI — pass/hold eval + UC2 `affected-vessels` |
-| `pipelines/maritime_cyber/eval.py` | Rule engine, facts.json, decision_hash (W3) |
-| `agents/port_clearance/run_clearance.py` | W6 E2E — graph → eval → HTML → audit seal + verify instructions |
+| `pipelines/export_vessel_graph.py` | **D4** — impacted-path JSON + HTML export |
+| `agents/port_clearance/run_clearance.py` | **W6** E2E (+ **D1** scenario, **D3** WORM, **D4** graph export) |
+| `agents/port_clearance/worm_store.py` | **D3** — mock immutable publish |
+| `agents/port_clearance/verify_retention.py` | **D3** — third-party retention verify CLI |
+| `tests/maritime_cyber/` | CI for W2–W3, W6, D1–D4 |
+| `docs/ref-maritime-cyber-capvista.md` | **W0–W7 + D1–D4** status, commands, repo map |
 | `config/geopolitical_events.json` | Geopolitical filter zones |
 
 ## R2 buckets
@@ -104,6 +108,7 @@ Conventional Commits (`fix:`, `feat:`, `feat!:`)
 
 ## Docs
 
+- Port Cyber Clearance (Cap Vista): `docs/ref-maritime-cyber-capvista.md`
 - Analytics overview: `docs/ref-analytics-overview.md`
 - Feature engineering: `docs/ref-feature-engineering.md`
 - Scoring model: `docs/ref-scoring-model.md`

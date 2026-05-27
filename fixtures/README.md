@@ -1,4 +1,8 @@
-# Maritime cyber fixtures — Port Cyber Clearance PoC
+# Maritime cyber fixtures — Port Cyber Clearance PoC (W1)
+
+**Status:** **W1 done** — three-vessel fleet + pinned CVE snapshot for Cap Vista G1–G2.
+
+Program context: [docs/ref-maritime-cyber-capvista.md](../docs/ref-maritime-cyber-capvista.md).
 
 ## Disclosure (portal honesty)
 
@@ -8,13 +12,13 @@ This matches [maritime-cyber-governance-use-cases.md](https://github.com/edgesen
 
 ## Layout
 
-| Path | Layer | Status |
-|------|-------|--------|
-| `cve/snapshot-2026-05-26.json` | Public (pinned OSV subset — Log4Shell) | G1 |
-| `sbom/vessel-hold.json` | Synthetic — critical CVE on ECDIS path | G2 |
-| `sbom/vessel-clean.json` | Synthetic — no open criticals | G2 |
-| `sbom/vessel-thread.json` | Synthetic — clean + signed ProcessLog (UC3) | G2 |
-| `asset_map.yaml` | **Synthetic bridge** — OT ↔ firmware ↔ SBOM components | W0 schema · W1 data |
+| Path | Layer | Gate / WS |
+|------|-------|-----------|
+| `cve/snapshot-2026-05-26.json` | Public (pinned OSV subset — Log4Shell) | G1 · W1 |
+| `sbom/vessel-hold.json` | Synthetic — critical CVE on ECDIS path | G2 · W1 |
+| `sbom/vessel-clean.json` | Synthetic — no open criticals | G2 · W1 |
+| `sbom/vessel-thread.json` | Synthetic — clean + signed ProcessLog (UC3) | G2 · W1 |
+| `asset_map.yaml` | **Synthetic bridge** — OT ↔ firmware ↔ SBOM components | W0 schema · W1 |
 | `port_calls/*.json` | Synthetic — OCEANS-X-shaped port-call events | W1 |
 | `process_logs/*.json` | Synthetic — yard patch / scan records | W1 |
 

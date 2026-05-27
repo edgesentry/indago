@@ -1,5 +1,6 @@
 # EdgeSentry maritime cyber profile — Port Cyber Clearance PoC
-# See: edgesentry-commercial/docs/programs/20260630-capvista-products/analysis/
+# Status: W1 done — see indago/docs/ref-maritime-cyber-capvista.md
+# Commercial plan: edgesentry-commercial/docs/programs/20260630-capvista-products/analysis/
 
 version: "0.1.0"
 profile_id: maritime_cyber
