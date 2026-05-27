@@ -53,7 +53,6 @@ def test_manifest_audit_refs_stable_across_reruns() -> None:
 
 
 def test_manifest_drift_detects_tampered_sbom(tmp_path: Path) -> None:
-    graph = build_maritime_cyber_graph(["vessel-hold"])
     sbom_dir = tmp_path / "sbom"
     sbom_dir.mkdir()
     src = Path(__file__).resolve().parents[2] / "fixtures" / "sbom" / "vessel-hold.json"
