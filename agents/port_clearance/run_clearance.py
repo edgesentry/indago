@@ -14,12 +14,14 @@ import subprocess
 import sys
 import time
 from dataclasses import dataclass
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
 import yaml
 
 from pipelines.maritime_cyber.eval import (
+    affected_vessels,
     evaluate_port_clearance,
     write_evaluation_artifacts,
 )
@@ -33,6 +35,7 @@ _REPO_ROOT = Path(__file__).resolve().parents[2]
 _PROFILE_MANIFEST = _REPO_ROOT / "profiles" / "maritime_cyber" / "manifest.yaml"
 _DEFAULT_EDS_REL = _REPO_ROOT.parent / "edgesentry-rs" / "target" / "debug" / "eds"
 _DEMO_PRIV_KEY = "0101010101010101010101010101010101010101010101010101010101010101"
+_DEMO_CVE_LOG4SHELL = "CVE-2021-44228"
 
 
 @dataclass(frozen=True)
@@ -75,26 +78,45 @@ def _file_sha256(path: Path) -> str | None:
     return h.hexdigest()
 
 
+def _eds_supports_clearance_audit(eds: Path) -> bool:
+    probe = subprocess.run(
+        [str(eds), "audit", "sign-clearance", "--help"],
+        capture_output=True,
+        check=False,
+    )
+    return probe.returncode == 0
+
+
 def find_eds_binary(explicit: str | None = None) -> Path:
-    """Resolve eds CLI: explicit path, EDS_BIN, PATH, or sibling edgesentry-rs build."""
+    """Resolve eds CLI with W4 clearance subcommands (sign-clearance / verify-clearance)."""
     if explicit:
         p = Path(explicit)
         if p.is_file() and os.access(p, os.X_OK):
+            if not _eds_supports_clearance_audit(p):
+                raise FileNotFoundError(
+                    f"eds at {p} lacks audit sign-clearance — build edgesentry-rs: cargo build -p eds"
+                )
             return p
         raise FileNotFoundError(f"eds binary not executable: {p}")
 
-    for candidate in (
-        os.environ.get("EDS_BIN"),
-        shutil.which("eds"),
-    ):
+    candidates: list[Path] = []
+    if _DEFAULT_EDS_REL.is_file():
+        candidates.append(_DEFAULT_EDS_REL)
+    for candidate in (os.environ.get("EDS_BIN"), shutil.which("eds")):
         if candidate:
             p = Path(candidate)
-            if p.is_file():
-                return p
+            if p.is_file() and p not in candidates:
+                candidates.append(p)
 
-    sibling = _DEFAULT_EDS_REL
-    if sibling.is_file():
-        return sibling
+    for p in candidates:
+        if _eds_supports_clearance_audit(p):
+            return p
+
+    if candidates:
+        raise FileNotFoundError(
+            f"eds found ({candidates[0]}) but lacks audit sign-clearance — "
+            "build edgesentry-rs: cargo build -p eds"
+        )
 
     raise FileNotFoundError(
         "eds not found — set EDS_BIN, install eds on PATH, or build edgesentry-rs: "
@@ -115,6 +137,33 @@ def _default_verify_url(decision_hash: str) -> str:
     return f"https://verify.edgesentry.io/clearance/{decision_hash}"
 
 
+def _utc_now_iso() -> str:
+    return datetime.now(UTC).replace(microsecond=0).isoformat()
+
+
+def verify_clearance_with_eds(
+    *,
+    manifest_path: Path,
+    chain_path: Path,
+    eds: Path,
+) -> str:
+    """Run eds verify-clearance; return stdout on success."""
+    verify = _run_eds(
+        [
+            "audit",
+            "verify-clearance",
+            "--manifest",
+            str(manifest_path),
+            "--chain",
+            str(chain_path),
+        ],
+        eds,
+    )
+    if verify.returncode != 0:
+        raise RuntimeError(f"eds audit verify-clearance failed:\n{verify.stderr}")
+    return verify.stdout.strip()
+
+
 def run_clearance(
     vessel_key: str,
     *,
@@ -132,8 +181,11 @@ def run_clearance(
     device_id: str = "port-clearance-poc",
     skip_render: bool = False,
     skip_seal: bool = False,
+    prior_decision_hash: str | None = None,
+    lifecycle_event: str | None = None,
 ) -> ClearanceRunResult:
     """Run full clearance pipeline; return paths and outcome."""
+    run_at = _utc_now_iso()
     profile = load_profile_manifest(profile_manifest)
     out = Path(output_dir or DEFAULT_OUTPUT_DIR / "clearance_runs" / vessel_key)
     out.mkdir(parents=True, exist_ok=True)
@@ -209,6 +261,11 @@ def run_clearance(
         )
         if sign.returncode != 0:
             raise RuntimeError(f"eds audit sign-clearance failed:\n{sign.stderr}")
+        verify_clearance_with_eds(
+            manifest_path=manifest_path,
+            chain_path=chain_path,
+            eds=eds,
+        )
 
     # Audit-time references (PoC shape): frozen BOM baseline + CVE snapshot refs
     resolved_asset_map = Path(asset_map_path) if asset_map_path else (_REPO_ROOT / "fixtures" / "asset_map.yaml")
@@ -228,7 +285,8 @@ def run_clearance(
     }
 
     # Persist run summary for W7 / demo tooling
-    summary = {
+    summary: dict[str, Any] = {
+        "run_at": run_at,
         "vessel_key": vessel_key,
         "port_call_id": port_call_id,
         "outcome": eval_result.outcome,
@@ -242,7 +300,12 @@ def run_clearance(
         "html": str(html_path) if html_path else None,
         "chain": str(chain_path) if chain_path else None,
         "verify_url": url,
+        "verify_clearance": "ok" if chain_path and not skip_seal else "skipped",
     }
+    if lifecycle_event:
+        summary["lifecycle_event"] = lifecycle_event
+    if prior_decision_hash:
+        summary["prior_decision_hash"] = prior_decision_hash
     (out / f"{prefix}_run_summary.json").write_text(
         json.dumps(summary, indent=2),
         encoding="utf-8",
@@ -305,8 +368,8 @@ def run_hold_to_pass_scenario(
     device_id: str = "port-clearance-poc",
     skip_render: bool = False,
     skip_seal: bool = False,
-) -> dict[str, ClearanceRunResult]:
-    """D1: one command demo — hold -> remediation -> pass."""
+) -> dict[str, Any]:
+    """D1: E7 -> E9 -> E10 -> re-E7 — hold, domino query, remediation, pass."""
     if vessel_key != "vessel-hold":
         raise ValueError("hold-to-pass scenario currently supports vessel-hold only (Log4j PoC)")
 
@@ -315,7 +378,9 @@ def run_hold_to_pass_scenario(
     run_root = base_out / scenario_id
     baseline_out = run_root / "baseline"
     remediated_out = run_root / "remediated"
+    scenario_started_at = _utc_now_iso()
 
+    # E7 — port cyber clearance (baseline hold)
     baseline = run_clearance(
         vessel_key,
         port_call_id=port_call_id,
@@ -328,14 +393,39 @@ def run_hold_to_pass_scenario(
         device_id=device_id,
         skip_render=skip_render,
         skip_seal=skip_seal,
+        lifecycle_event="E7",
     )
 
-    # Remediation: patch SBOM only (asset_map and CVE snapshot remain pinned)
+    # E9 — CVE domino / affected-vessel query (UC2)
+    fleet_graph = build_maritime_cyber_graph()
+    e9_vessels = affected_vessels(_DEMO_CVE_LOG4SHELL, graph_result=fleet_graph)
+    e9_artifact = {
+        "lifecycle_event": "E9",
+        "cve_id": _DEMO_CVE_LOG4SHELL,
+        "affected_vessels": e9_vessels,
+        "queried_at": _utc_now_iso(),
+    }
+    e9_path = run_root / "e9_affected_vessels.json"
+    e9_path.write_text(json.dumps(e9_artifact, indent=2), encoding="utf-8")
+
+    # E10 — remediation (patch SBOM; asset_map and CVE snapshot remain pinned)
     patched_sbom_dir = remediated_out / "sbom"
     src_sbom = _REPO_ROOT / "fixtures" / "sbom" / f"{vessel_key}.json"
     dst_sbom = patched_sbom_dir / f"{vessel_key}.json"
     _write_patched_sbom_for_log4j_hold(vessel_key=vessel_key, src_sbom_path=src_sbom, dst_sbom_path=dst_sbom)
+    e10_artifact = {
+        "lifecycle_event": "E10",
+        "action": "sbom_component_patch",
+        "component_purl": "pkg:maven/org.apache.logging.log4j/log4j-core",
+        "from_version": "2.14.1",
+        "to_version": "2.15.0",
+        "patched_sbom": str(dst_sbom),
+        "remediated_at": _utc_now_iso(),
+    }
+    e10_path = run_root / "e10_remediation.json"
+    e10_path.write_text(json.dumps(e10_artifact, indent=2), encoding="utf-8")
 
+    # re-E7 — re-clearance after remediation
     remediated = run_clearance(
         vessel_key,
         port_call_id=port_call_id,
@@ -349,19 +439,35 @@ def run_hold_to_pass_scenario(
         device_id=device_id,
         skip_render=skip_render,
         skip_seal=skip_seal,
+        prior_decision_hash=baseline.decision_hash,
+        lifecycle_event="E7",
     )
 
     # Persist top-level scenario summary
     scenario_summary = {
         "scenario": "hold-to-pass",
+        "lifecycle_sequence": ["E7", "E9", "E10", "E7"],
+        "scenario_started_at": scenario_started_at,
+        "scenario_completed_at": _utc_now_iso(),
         "vessel_key": vessel_key,
         "port_call_id": port_call_id,
+        "e9_artifact": str(e9_path),
+        "e10_artifact": str(e10_path),
+        "decision_hash_continuity": {
+            "baseline": baseline.decision_hash,
+            "remediated": remediated.decision_hash,
+            "prior_decision_hash_on_remediated_run": baseline.decision_hash,
+        },
         "baseline": {
+            "lifecycle_event": "E7",
             "outcome": baseline.outcome,
             "decision_hash": baseline.decision_hash,
             "run_dir": str(baseline.output_dir),
         },
+        "e9": e9_artifact,
+        "e10": e10_artifact,
         "remediated": {
+            "lifecycle_event": "E7",
             "outcome": remediated.outcome,
             "decision_hash": remediated.decision_hash,
             "run_dir": str(remediated.output_dir),
@@ -372,7 +478,13 @@ def run_hold_to_pass_scenario(
         encoding="utf-8",
     )
 
-    return {"baseline": baseline, "remediated": remediated}
+    return {
+        "baseline": baseline,
+        "remediated": remediated,
+        "e9_vessels": e9_vessels,
+        "run_root": run_root,
+        "scenario_summary_path": run_root / "scenario_summary.json",
+    }
 
 
 def print_verify_instructions(result: ClearanceRunResult, eds: Path | None = None) -> None:
@@ -477,12 +589,16 @@ def main(argv: list[str] | None = None) -> int:
 
         baseline = results["baseline"]
         remediated = results["remediated"]
+        e9_vessels = results["e9_vessels"]
 
-        print("\nscenario: hold-to-pass\n")
-        print(f"baseline.outcome: {baseline.outcome}")
-        print(f"baseline.decision_hash: {baseline.decision_hash}")
-        print(f"remediated.outcome: {remediated.outcome}")
-        print(f"remediated.decision_hash: {remediated.decision_hash}")
+        print("\nscenario: hold-to-pass (E7 -> E9 -> E10 -> re-E7)\n")
+        print(f"E7 baseline.outcome: {baseline.outcome}")
+        print(f"E7 baseline.decision_hash: {baseline.decision_hash}")
+        print(f"E9 affected_vessels({_DEMO_CVE_LOG4SHELL}): {e9_vessels}")
+        print(f"E10 remediation: log4j-core 2.14.1 -> 2.15.0")
+        print(f"re-E7 remediated.outcome: {remediated.outcome}")
+        print(f"re-E7 remediated.decision_hash: {remediated.decision_hash}")
+        print(f"scenario_summary: {results['scenario_summary_path']}")
 
         try:
             eds = None if args.skip_seal else find_eds_binary(args.eds_bin)
