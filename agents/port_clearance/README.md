@@ -25,6 +25,9 @@ uv run python -m agents.port_clearance.run_clearance vessel-hold
 # Pass vessel
 uv run python -m agents.port_clearance.run_clearance vessel-clean
 
+# D1 scenario: hold -> remediation -> pass (one command)
+uv run python -m agents.port_clearance.run_clearance vessel-hold --scenario hold-to-pass
+
 # Eval + artefacts only (no eds)
 uv run python -m agents.port_clearance.run_clearance vessel-hold --skip-render --skip-seal
 

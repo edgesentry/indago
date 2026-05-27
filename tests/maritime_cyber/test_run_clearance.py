@@ -12,6 +12,7 @@ import pytest
 from agents.port_clearance.run_clearance import (
     load_profile_manifest,
     run_clearance,
+    run_hold_to_pass_scenario,
 )
 
 
@@ -47,6 +48,19 @@ def test_run_clearance_eval_only(tmp_path: Path, vessel_key: str, expected_outco
 
     summary_path = tmp_path / vessel_key / f"{vessel_key}_port-call-demo-sgsin_run_summary.json"
     assert summary_path.is_file()
+
+
+def test_hold_to_pass_scenario_eval_only(tmp_path: Path) -> None:
+    """D1: hold -> remediation -> pass without eds (CI-safe)."""
+    results = run_hold_to_pass_scenario(
+        "vessel-hold",
+        output_dir=tmp_path / "scenario",
+        skip_render=True,
+        skip_seal=True,
+    )
+    assert results["baseline"].outcome == "hold"
+    assert results["remediated"].outcome == "pass"
+    assert results["baseline"].decision_hash != results["remediated"].decision_hash
 
 
 @pytest.mark.integration
