@@ -386,6 +386,7 @@ dependencies = [
     { name = "pylance" },
     { name = "python-dotenv" },
     { name = "pytz" },
+    { name = "pyyaml" },
     { name = "scikit-learn" },
     { name = "websockets" },
 ]
@@ -413,6 +414,7 @@ requires-dist = [
     { name = "pytest", marker = "extra == 'test'", specifier = ">=9.0" },
     { name = "python-dotenv", specifier = ">=1.0" },
     { name = "pytz", specifier = ">=2026.1.post1" },
+    { name = "pyyaml", specifier = ">=6.0" },
     { name = "scikit-learn", specifier = ">=1.5" },
     { name = "websockets", specifier = ">=12.0" },
 ]

@@ -1,0 +1,123 @@
+# Singapore Port Cyber Clearance — rule pack v0.1 (PoC)
+# Traceability: edgesentry-commercial/.../regulatory-requirements-matrix.md
+# Evaluator: pipelines/maritime_cyber/port_clearance_eval.py (W3)
+
+version: "0.1.0"
+pack_id: sg-cyber-clearance-v0
+jurisdiction: SG
+description: >
+  Deterministic clearance rules derived from public summaries of IACS UR E26/E27,
+  IMO MSC.428(98), IEC 62443, and NTIA SBOM minimum elements. Not legal advice.
+
+default_outcome: pass
+aggregate: any_hold_rule_fired_implies_hold
+
+parameters:
+  critical_cvss_threshold: 9.0
+  high_cvss_threshold: 7.0
+  safety_patch_sla_days: 30
+  process_log_window_days: 90
+
+rules:
+  - id: SG-CC-001
+    title: Critical CVE on safety-related CBS
+    severity: critical
+    outcome: hold
+    requirements: [IACS-E26-1, IACS-E27-2, IMO-428-5]
+    condition:
+      type: cve_on_asset_path
+      match:
+        cvss_gte: 9.0
+        safety_function_in: [essential, important]
+        path: [PhysicalAsset, Firmware, SoftwareComponent, CVE]
+
+  - id: SG-CC-002
+    title: High CVE on navigation or ECDIS software path
+    severity: high
+    outcome: hold
+    requirements: [IACS-E26-1, IACS-E27-2, IMO-428-5]
+    condition:
+      type: cve_on_asset_path
+      match:
+        cvss_gte: 7.0
+        cbs_category_in: [navigation]
+        path: [PhysicalAsset, Firmware, SoftwareComponent, CVE]
+
+  - id: SG-CC-003
+    title: SBOM component missing supplier name (NTIA minimum)
+    severity: medium
+    outcome: hold
+    requirements: [NTIA-SBOM-7, IMO-428-5]
+    condition:
+      type: sbom_field_missing
+      field: supplier.name
+
+  - id: SG-CC-004
+    title: SBOM component missing version
+    severity: medium
+    outcome: hold
+    requirements: [NTIA-SBOM-7, IMO-428-5]
+    condition:
+      type: sbom_field_missing
+      field: version
+
+  - id: SG-CC-005
+    title: SBOM component missing package identifier (PURL or CPE)
+    severity: medium
+    outcome: hold
+    requirements: [NTIA-SBOM-7]
+    condition:
+      type: sbom_identifier_missing
+      require_any: [purl, cpe]
+
+  - id: SG-CC-006
+    title: CBS inventory missing network zone (E27)
+    severity: high
+    outcome: hold
+    requirements: [IACS-E27-2, IACS-E27-3]
+    condition:
+      type: asset_map_field_missing
+      fields: [ecu_zone, network_zone]
+
+  - id: SG-CC-007
+    title: Known exploited vulnerability present on vessel SBOM path
+    severity: critical
+    outcome: hold
+    requirements: [IMO-428-5, OSV-1]
+    condition:
+      type: cve_flag
+      flag: in_kev
+      value: true
+
+  - id: SG-CC-008
+    title: Critical patch applied without signed ProcessLog in window
+    severity: medium
+    outcome: hold
+    requirements: [IEC-62443-2-1, IMO-428-5]
+    condition:
+      type: process_log_required
+      when:
+        critical_cve_open: true
+      within_days: 90
+      require_signed: true
+
+  - id: SG-CC-009
+    title: Mandatory CBS categories not inventoried for vessel
+    severity: medium
+    outcome: hold
+    requirements: [IACS-E27-2, IMO-428-5]
+    condition:
+      type: mandatory_cbs_categories
+      required: [navigation]
+
+  - id: SG-CC-010
+    title: Critical CVE open beyond patch SLA on safety zone asset
+    severity: high
+    outcome: hold
+    requirements: [IEC-62443-TR2-3, IACS-E26-1]
+    condition:
+      type: patch_age_exceeded
+      match:
+        cvss_gte: 9.0
+        safety_function_in: [essential]
+        max_age_days: 30

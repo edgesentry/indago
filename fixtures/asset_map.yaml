@@ -1,0 +1,64 @@
+# Synthetic OT inventory bridge — IACS UR E27-style CBS fields (PoC)
+# NOT production yard/class data. See fixtures/README.md
+
+version: "0.1.0"
+synthetic: true
+
+vessels:
+  vessel-hold:
+    imo: "IMO9990001"
+    display_name: Demo Hold (ECDIS path)
+    physical_assets:
+      - id: ecdis-01
+        name: ECDIS Workstation
+        cbs_category: navigation
+        safety_function: essential
+        ecu_zone: bridge_nav
+        network_zone: zone_1
+        location_onboard: bridge
+        manufacturer: Demo Marine Electronics
+        firmware:
+          id: ecdis-fw-2023.4
+          version: "2023.4"
+          contains:
+            - purl: pkg:maven/org.apache.logging.log4j/log4j-core@2.14.1
+              component_name: log4j-core
+
+  vessel-clean:
+    imo: "IMO9990002"
+    display_name: Demo Clean
+    physical_assets:
+      - id: ecdis-01
+        name: ECDIS Workstation
+        cbs_category: navigation
+        safety_function: essential
+        ecu_zone: bridge_nav
+        network_zone: zone_1
+        location_onboard: bridge
+        manufacturer: Demo Marine Electronics
+        firmware:
+          id: ecdis-fw-2024.2
+          version: "2024.2"
+          contains:
+            - purl: pkg:maven/org.apache.logging.log4j/log4j-core@2.23.1
+              component_name: log4j-core
+
+  vessel-thread:
+    imo: "IMO9990003"
+    display_name: Demo Thread (UC3)
+    physical_assets:
+      - id: ecdis-01
+        name: ECDIS Workstation
+        cbs_category: navigation
+        safety_function: essential
+        ecu_zone: bridge_nav
+        network_zone: zone_1
+        location_onboard: bridge
+        manufacturer: Demo Marine Electronics
+        firmware:
+          id: ecdis-fw-2024.2
+          version: "2024.2"
+          contains:
+            - purl: pkg:maven/org.apache.logging.log4j/log4j-core@2.23.1
+              component_name: log4j-core
+    process_log_ref: yard-jp-42

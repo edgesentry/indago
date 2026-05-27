@@ -1,0 +1,107 @@
+# Maritime cyber ontology v0.1 — graph schema contract
+# Relational projection: nodes.parquet / edges.parquet (see technical-architecture.md)
+
+version: "0.1.0"
+
+node_classes:
+  Vessel:
+    key: vessel_id
+    properties:
+      imo: { type: string, optional: true }
+      mmsi: { type: string, optional: true }
+      name: { type: string, optional: true }
+
+  PhysicalAsset:
+    key: asset_id
+    description: Onboard CBS / OT unit (E27 inventory)
+    properties:
+      id: { type: string, required: true }
+      name: { type: string, required: true }
+      cbs_category:
+        type: enum
+        values: [navigation, propulsion, cargo, communications, other]
+        maps_to: IACS-E27-2
+      safety_function:
+        type: enum
+        values: [essential, important, normal]
+        maps_to: IACS-E27-2
+      ecu_zone: { type: string, required: true, maps_to: IACS-E27-3 }
+      network_zone: { type: string, required: true, maps_to: IACS-E27-3 }
+      location_onboard: { type: string, optional: true }
+      manufacturer: { type: string, optional: true }
+
+  Firmware:
+    key: firmware_id
+    properties:
+      id: { type: string, required: true }
+      version: { type: string, required: true }
+      image_hash: { type: string, optional: true }
+
+  SoftwareComponent:
+    key: component_ref
+    properties:
+      name: { type: string, required: true }
+      version: { type: string, required: true }
+      purl: { type: string, optional: true }
+      cpe: { type: string, optional: true }
+      supplier_name: { type: string, optional: true, maps_to: NTIA-SBOM-7 }
+
+  SBOM:
+    key: sbom_id
+    properties:
+      format: { type: string, default: CycloneDX }
+      spec_version: { type: string }
+      content_hash: { type: string }
+
+  CVE:
+    key: cve_id
+    properties:
+      osv_id: { type: string }
+      cvss_score: { type: float, optional: true }
+      severity: { type: string, optional: true }
+      in_kev: { type: boolean, default: false }
+
+  ComplianceRule:
+    key: rule_id
+    source: rules/sg-cyber-clearance-v0.yaml
+
+  ProcessLog:
+    key: log_id
+    properties:
+      event_type: { type: string }
+      signed_at: { type: datetime }
+      yard_id: { type: string, optional: true }
+
+  PortCall:
+    key: port_call_id
+    properties:
+      port_unlocode: { type: string }
+      arrival_time: { type: datetime }
+      berth_request: { type: boolean, default: true }
+
+  ClearanceDecision:
+    key: decision_id
+    properties:
+      outcome: { type: enum, values: [pass, hold, investigate] }
+      rules_fired: { type: array, items: string }
+      decision_hash: { type: string }
+
+  AuditRecord:
+    key: record_id
+    external: edgesentry-rs
+
+edge_types:
+  hasSBOM: { from: Vessel, to: SBOM }
+  lists: { from: SBOM, to: SoftwareComponent }
+  affectedBy: { from: SoftwareComponent, to: CVE }
+  hasAsset: { from: Vessel, to: PhysicalAsset }
+  runs: { from: PhysicalAsset, to: Firmware }
+  contains: { from: Firmware, to: SoftwareComponent }
+  appliesTo: { from: ProcessLog, to: Vessel }
+  for: { from: PortCall, to: Vessel }
+  evaluates: { from: ClearanceDecision, to: PortCall }
+  seals: { from: AuditRecord, to: ClearanceDecision }
+
+mandatory_cbs_categories:
+  - navigation
+  description: Minimum inventory categories per SG-CC-009 (PoC demo fleet)
