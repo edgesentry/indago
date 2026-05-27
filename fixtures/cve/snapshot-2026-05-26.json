@@ -1,0 +1,34 @@
+{
+  "snapshot_id": "2026-05-26",
+  "schema": "OSV",
+  "description": "Pinned PoC subset — Log4j (CVE-2021-44228) for vessel-hold ECDIS path demo",
+  "vulnerabilities": [
+    {
+      "id": "GHSA-jfhr-c2vg-8q4j",
+      "aliases": ["CVE-2021-44228"],
+      "summary": "Apache Log4j2 remote code execution (Log4Shell)",
+      "severity": "CRITICAL",
+      "database_specific": {
+        "cvss_score": 10.0,
+        "in_kev": true
+      },
+      "affected": [
+        {
+          "package": {
+            "ecosystem": "Maven",
+            "name": "org.apache.logging.log4j:log4j-core"
+          },
+          "ranges": [
+            {
+              "type": "ECOSYSTEM",
+              "events": [
+                { "introduced": "2.0-beta9" },
+                { "fixed": "2.15.0" }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
