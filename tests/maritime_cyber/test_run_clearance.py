@@ -74,6 +74,32 @@ def test_run_clearance_eval_only(tmp_path: Path, vessel_key: str, expected_outco
     assert summary_path.is_file()
 
 
+def test_ai_narrative_does_not_change_decision_hash(tmp_path: Path) -> None:
+    """D5: operator explanation is sidecar-only; facts hash unchanged."""
+    baseline = run_clearance(
+        "vessel-hold",
+        output_dir=tmp_path / "without",
+        write_graph=False,
+        skip_render=True,
+        skip_seal=True,
+        ai_narrative=False,
+    )
+    with_narrative = run_clearance(
+        "vessel-hold",
+        output_dir=tmp_path / "with",
+        write_graph=False,
+        skip_render=True,
+        skip_seal=True,
+        ai_narrative=True,
+    )
+    assert baseline.decision_hash == with_narrative.decision_hash
+    assert with_narrative.operator_explanation_path is not None
+    assert with_narrative.operator_explanation_path.is_file()
+    baseline_facts = json.loads(baseline.facts_path.read_text(encoding="utf-8"))
+    narrative_facts = json.loads(with_narrative.facts_path.read_text(encoding="utf-8"))
+    assert baseline_facts == narrative_facts
+
+
 def test_hold_to_pass_scenario_eval_only(tmp_path: Path) -> None:
     """D1: E7 -> E9 -> E10 -> re-E7 without eds (CI-safe)."""
     results = run_hold_to_pass_scenario(
