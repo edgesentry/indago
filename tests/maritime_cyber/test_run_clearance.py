@@ -81,6 +81,7 @@ def test_hold_to_pass_scenario_eval_only(tmp_path: Path) -> None:
         output_dir=tmp_path / "scenario",
         skip_render=True,
         skip_seal=True,
+        worm_root=tmp_path / "worm",
     )
     assert results["baseline"].outcome == "hold"
     assert results["remediated"].outcome == "pass"
@@ -115,6 +116,7 @@ def test_hold_to_pass_scenario_verify_clearance_both_runs(tmp_path: Path) -> Non
         skip_render=True,
         skip_seal=False,
         eds_bin=eds,
+        worm_root=tmp_path / "worm",
     )
     eds_path = Path(eds)
     for label in ("baseline", "remediated"):
