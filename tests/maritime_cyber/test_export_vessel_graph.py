@@ -78,7 +78,7 @@ def test_paths_match_facts_impacted_paths() -> None:
 
 
 def test_run_clearance_writes_graph_exports(tmp_path: Path) -> None:
-    result = run_clearance(
+    run_clearance(
         "vessel-hold",
         output_dir=tmp_path / "hold",
         write_graph=False,
