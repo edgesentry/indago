@@ -232,7 +232,7 @@ def print_verify_instructions(result: ClearanceRunResult, eds: Path | None = Non
         print("  audit chain:    (skipped — re-run without --skip-seal)\n")
         return
 
-    eds_path = eds or find_eds_binary()
+    eds or find_eds_binary()
     print("  audit chain:    ", result.chain_path)
     print("\n  eds audit verify-chain \\")
     print(f"    --records-file {result.chain_path}\n")
