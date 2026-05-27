@@ -1,6 +1,6 @@
 """Port Cyber Clearance E2E orchestration (Cap Vista W6)."""
 
-__all__ = ["ClearanceRunResult", "run_clearance"]
+__all__ = ["run_clearance"]
 
 
 def __getattr__(name: str):
