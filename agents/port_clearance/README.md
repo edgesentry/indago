@@ -25,8 +25,16 @@ uv run python -m agents.port_clearance.run_clearance vessel-hold
 # Pass vessel
 uv run python -m agents.port_clearance.run_clearance vessel-clean
 
-# D1 scenario: hold -> remediation -> pass (one command)
+# D1 scenario: E7 -> E9 -> E10 -> re-E7 (hold, domino query, patch, pass)
 uv run python -m agents.port_clearance.run_clearance vessel-hold --scenario hold-to-pass
+
+Lifecycle beats:
+- **E7** baseline clearance (`vessel-hold` → hold)
+- **E9** UC2 affected-vessel query (`CVE-2021-44228` → `vessel-hold`)
+- **E10** SBOM remediation (log4j-core 2.14.1 → 2.15.0)
+- **re-E7** re-clearance (pass; new `decision_hash`, linked via `prior_decision_hash`)
+
+When `eds` is available, each sealed run auto-runs `eds audit verify-clearance` after `sign-clearance`.
 
 # Eval + artefacts only (no eds)
 uv run python -m agents.port_clearance.run_clearance vessel-hold --skip-render --skip-seal
