@@ -45,6 +45,11 @@ def test_facts_json_written(tmp_path: Path) -> None:
     assert facts["outcome"] == "hold"
     assert "disclaimer" in facts
     assert facts["decision_hash"] == result.decision_hash
+    assert facts["bom_baseline_ref"]["sbom_sha256"]
+    assert facts["cve_snapshot_ref"]["cve_snapshot_sha256"]
+    assert facts["impacted_paths"]
+    manifest = json.loads(paths["manifest"].read_text(encoding="utf-8"))
+    assert manifest["bom_baseline_ref"] == facts["bom_baseline_ref"]
 
 
 def test_uc2_affected_vessels_api() -> None:
