@@ -13,7 +13,6 @@ from typing import Any
 from pipelines.maritime_cyber.audit_refs import assert_manifest_audit_refs, file_sha256
 from pipelines.maritime_cyber.graph import DEFAULT_OUTPUT_DIR
 
-_REPO_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_WORM_ROOT = DEFAULT_OUTPUT_DIR / "worm_store" / "clearance"
 
 
