@@ -180,6 +180,7 @@ def run_clearance(
     worm_root: Path | None = None,
     skip_graph_export: bool = False,
     copy_graph_to_documaris: bool = False,
+    copy_graph_to_capvista_submission: bool = False,
     prior_decision_hash: str | None = None,
     lifecycle_event: str | None = None,
 ) -> ClearanceRunResult:
@@ -312,6 +313,7 @@ def run_clearance(
             cve_snapshot_path=cve_snapshot_path,
             sbom_dir=sbom_dir,
             copy_to_documaris_dist=copy_graph_to_documaris,
+            copy_to_capvista_submission=copy_graph_to_capvista_submission,
         )
         impacted_paths_json = graph_exports["json"]
         impacted_path_html = graph_exports["html"]
@@ -400,6 +402,7 @@ def run_hold_to_pass_scenario(
     worm_root: Path | None = None,
     skip_graph_export: bool = False,
     copy_graph_to_documaris: bool = False,
+    copy_graph_to_capvista_submission: bool = False,
 ) -> dict[str, Any]:
     """D1: E7 -> E9 -> E10 -> re-E7 — hold, domino query, remediation, pass."""
     if vessel_key != "vessel-hold":
@@ -429,6 +432,7 @@ def run_hold_to_pass_scenario(
         worm_root=worm_root,
         skip_graph_export=skip_graph_export,
         copy_graph_to_documaris=copy_graph_to_documaris,
+        copy_graph_to_capvista_submission=copy_graph_to_capvista_submission,
         lifecycle_event="E7",
     )
 
@@ -479,6 +483,7 @@ def run_hold_to_pass_scenario(
         worm_root=worm_root,
         skip_graph_export=skip_graph_export,
         copy_graph_to_documaris=copy_graph_to_documaris,
+        copy_graph_to_capvista_submission=copy_graph_to_capvista_submission,
         prior_decision_hash=baseline.decision_hash,
         lifecycle_event="E7",
     )
@@ -614,6 +619,11 @@ def main(argv: list[str] | None = None) -> int:
         action="store_true",
         help="Also write documaris/dist/<vessel>_impacted-path.html",
     )
+    parser.add_argument(
+        "--copy-graph-to-capvista-submission",
+        action="store_true",
+        help="Also write edgesentry-commercial/.../submission/artefacts/<vessel>_impacted-path.html",
+    )
     parser.add_argument("--json", action="store_true", help="Print run summary JSON to stdout")
     args = parser.parse_args(argv)
 
@@ -646,6 +656,7 @@ def main(argv: list[str] | None = None) -> int:
                 worm_root=args.worm_root,
                 skip_graph_export=args.skip_graph_export,
                 copy_graph_to_documaris=args.copy_graph_to_documaris,
+                copy_graph_to_capvista_submission=args.copy_graph_to_capvista_submission,
             )
         except (FileNotFoundError, RuntimeError, ValueError) as exc:
             print(f"error: {exc}", file=sys.stderr)
@@ -696,6 +707,7 @@ def main(argv: list[str] | None = None) -> int:
             worm_root=args.worm_root,
             skip_graph_export=args.skip_graph_export,
             copy_graph_to_documaris=args.copy_graph_to_documaris,
+            copy_graph_to_capvista_submission=args.copy_graph_to_capvista_submission,
         )
     except (FileNotFoundError, RuntimeError) as exc:
         print(f"error: {exc}", file=sys.stderr)

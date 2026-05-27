@@ -54,8 +54,10 @@ uv run python -m agents.port_clearance.run_clearance vessel-hold --scenario hold
 # Eval only (no eds, no WORM, no graph export)
 uv run python -m agents.port_clearance.run_clearance vessel-hold --skip-render --skip-seal --skip-worm --skip-graph-export
 
-# D4 standalone → documaris demo bundle
-uv run python -m pipelines.export_vessel_graph vessel-hold --copy-to-documaris-dist
+# D4 standalone → documaris + commercial submission snapshots (sibling repos)
+uv run python -m pipelines.export_vessel_graph vessel-hold \
+  --copy-to-documaris-dist \
+  --copy-to-capvista-submission
 
 # D3 retention verify
 uv run python -m agents.port_clearance.verify_retention \
