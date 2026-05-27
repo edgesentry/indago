@@ -10,10 +10,10 @@ This matches [maritime-cyber-governance-use-cases.md](https://github.com/edgesen
 
 | Path | Layer | Status |
 |------|-------|--------|
-| `cve/snapshot-*.json` | Public (pinned OSV/NVD subset) | W1 — G1 |
-| `sbom/vessel-hold.json` | Synthetic — critical CVE on ECDIS path | W1 — G2 |
-| `sbom/vessel-clean.json` | Synthetic — no open criticals | W1 — G2 |
-| `sbom/vessel-thread.json` | Synthetic — clean + signed ProcessLog (UC3) | W1 — G2 |
+| `cve/snapshot-2026-05-26.json` | Public (pinned OSV subset — Log4Shell) | G1 |
+| `sbom/vessel-hold.json` | Synthetic — critical CVE on ECDIS path | G2 |
+| `sbom/vessel-clean.json` | Synthetic — no open criticals | G2 |
+| `sbom/vessel-thread.json` | Synthetic — clean + signed ProcessLog (UC3) | G2 |
 | `asset_map.yaml` | **Synthetic bridge** — OT ↔ firmware ↔ SBOM components | W0 schema · W1 data |
 | `port_calls/*.json` | Synthetic — OCEANS-X-shaped port-call events | W1 |
 | `process_logs/*.json` | Synthetic — yard patch / scan records | W1 |
