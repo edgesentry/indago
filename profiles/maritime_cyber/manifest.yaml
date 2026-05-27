@@ -1,0 +1,33 @@
+# EdgeSentry maritime cyber profile — Port Cyber Clearance PoC
+# See: edgesentry-commercial/docs/programs/20260630-capvista-products/analysis/
+
+version: "0.1.0"
+profile_id: maritime_cyber
+display_name: Maritime Cyber — Port Clearance (Singapore PoC)
+
+ontology:
+  file: ontology.yaml
+  version: "0.1.0"
+
+rule_pack:
+  file: ../../rules/sg-cyber-clearance-v0.yaml
+  version: "0.1.0"
+
+fixtures:
+  asset_map: ../../fixtures/asset_map.yaml
+  sbom_dir: ../../fixtures/sbom
+  cve_dir: ../../fixtures/cve
+  port_calls_dir: ../../fixtures/port_calls
+  process_logs_dir: ../../fixtures/process_logs
+
+pipelines:
+  graph: maritime_cyber_graph
+  evaluate: port_clearance_eval
+
+outputs:
+  parquet_dir: data/processed/maritime_cyber
+
+disclosure: >
+  PoC uses public CVE snapshots and representative SBOM fixtures with a documented
+  synthetic OT inventory map (asset_map.yaml). Production replaces fixtures with
+  operator-signed manifests.

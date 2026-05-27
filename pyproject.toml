@@ -25,6 +25,7 @@ dependencies = [
     "pandas>=2.0",
     "pandera[polars]>=0.21",
     "boto3>=1.34",
+    "pyyaml>=6.0",
 ]
 
 [project.optional-dependencies]

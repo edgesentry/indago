@@ -30,6 +30,10 @@ Multi-domain OSINT data layer. indago ingests raw signals from maritime, corpora
 | `scripts/notify_metrics.py` | Data-publish summary email |
 | `scripts/fetch_publish_metrics.py` | Fetch latest metrics from public R2 (no credentials) |
 | `config/sanction_regimes.yaml` | Configurable sanction regime definitions |
+| `profiles/maritime_cyber/` | Port Cyber Clearance ontology + manifest (Cap Vista PoC) |
+| `rules/sg-cyber-clearance-v0.yaml` | Singapore clearance rule pack (E26/E27-inspired) |
+| `fixtures/` | Maritime cyber PoC fixtures (`asset_map.yaml`, SBOM, CVE — W1+) |
+| `pipelines/maritime_cyber/` | Rule pack loader; graph/eval pipelines (W2–W3) |
 | `config/geopolitical_events.json` | Geopolitical filter zones |
 
 ## R2 buckets
