@@ -5,8 +5,11 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import pytest
+
 from agents.port_clearance.run_clearance import run_clearance
 from pipelines.export_vessel_graph import (
+    _copy_impacted_path_html,
     build_impacted_paths,
     export_impacted_paths_document,
     render_impacted_paths_html,
@@ -99,3 +102,69 @@ def test_render_pass_vessel_empty_paths() -> None:
     doc = export_impacted_paths_document("vessel-clean", [], outcome="pass")
     html = render_impacted_paths_html(doc)
     assert "No impacted vulnerability paths" in html
+
+
+def test_copy_impacted_path_html_writes_bundle(tmp_path: Path) -> None:
+    src = tmp_path / "src.html"
+    dest_dir = tmp_path / "bundle"
+    src.write_text("<p>hold path</p>", encoding="utf-8")
+
+    copied = _copy_impacted_path_html(src, "vessel-hold", dest_dir)
+
+    assert copied == dest_dir / "vessel-hold_impacted-path.html"
+    assert copied is not None
+    assert copied.read_text(encoding="utf-8") == src.read_text(encoding="utf-8")
+
+
+def test_copy_impacted_path_html_skips_missing_parent(tmp_path: Path) -> None:
+    src = tmp_path / "src.html"
+    src.write_text("<p>x</p>", encoding="utf-8")
+    dest_dir = tmp_path / "no_such_parent" / "bundle"
+
+    assert _copy_impacted_path_html(src, "vessel-hold", dest_dir) is None
+
+
+def test_write_vessel_graph_artifacts_copy_to_documaris_dist(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    import pipelines.export_vessel_graph as evg
+
+    bundle = tmp_path / "documaris-dist"
+    monkeypatch.setattr(evg, "_DOCUMARIS_DIST", bundle)
+
+    graph = build_maritime_cyber_graph(["vessel-hold"])
+    eval_result = evaluate_port_clearance("vessel-hold", graph_result=graph)
+    written = write_vessel_graph_artifacts(
+        "vessel-hold",
+        tmp_path / "out",
+        prefix="vessel-hold_pc",
+        impacted_paths=eval_result.facts["impacted_paths"],
+        outcome="hold",
+        copy_to_documaris_dist=True,
+    )
+
+    assert written["documaris_dist_html"] == bundle / "vessel-hold_impacted-path.html"
+    assert "capvista_submission_html" not in written
+
+
+def test_write_vessel_graph_artifacts_copy_to_capvista_submission(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    import pipelines.export_vessel_graph as evg
+
+    bundle = tmp_path / "capvista-artefacts"
+    monkeypatch.setattr(evg, "_CAPVISTA_SUBMISSION_ARTEFACTS", bundle)
+
+    graph = build_maritime_cyber_graph(["vessel-hold"])
+    eval_result = evaluate_port_clearance("vessel-hold", graph_result=graph)
+    written = write_vessel_graph_artifacts(
+        "vessel-hold",
+        tmp_path / "out",
+        prefix="vessel-hold_pc",
+        impacted_paths=eval_result.facts["impacted_paths"],
+        outcome="hold",
+        copy_to_capvista_submission=True,
+    )
+
+    assert written["capvista_submission_html"] == bundle / "vessel-hold_impacted-path.html"
+    assert "documaris_dist_html" not in written
