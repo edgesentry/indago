@@ -8,13 +8,7 @@ from pathlib import Path
 import pytest
 
 from agents.port_clearance.run_clearance import run_clearance
-from pipelines.export_vessel_graph import (
-    _copy_impacted_path_html,
-    build_impacted_paths,
-    export_impacted_paths_document,
-    render_impacted_paths_html,
-    write_vessel_graph_artifacts,
-)
+import pipelines.export_vessel_graph as evg
 from pipelines.maritime_cyber.eval import evaluate_port_clearance
 from pipelines.maritime_cyber.graph import build_maritime_cyber_graph
 
@@ -22,7 +16,7 @@ CVE_LOG4SHELL = "CVE-2021-44228"
 
 
 def test_hold_vessel_has_log4j_path() -> None:
-    paths = build_impacted_paths("vessel-hold")
+    paths = evg.build_impacted_paths("vessel-hold")
     assert len(paths) >= 1
     assert any(CVE_LOG4SHELL in (p.get("cve_id") or "") for p in paths)
     assert paths[0]["component_purl"]
@@ -30,7 +24,7 @@ def test_hold_vessel_has_log4j_path() -> None:
 
 
 def test_clean_vessel_has_no_impacted_paths() -> None:
-    paths = build_impacted_paths("vessel-clean")
+    paths = evg.build_impacted_paths("vessel-clean")
     assert paths == []
 
 
@@ -39,14 +33,14 @@ def test_export_json_is_deterministic(tmp_path: Path) -> None:
     eval_result = evaluate_port_clearance("vessel-hold", graph_result=graph)
     prefix = "vessel-hold_port-call-demo-sgsin"
 
-    a = write_vessel_graph_artifacts(
+    a = evg.write_vessel_graph_artifacts(
         "vessel-hold",
         tmp_path / "a",
         prefix=prefix,
         impacted_paths=eval_result.facts["impacted_paths"],
         outcome="hold",
     )
-    b = write_vessel_graph_artifacts(
+    b = evg.write_vessel_graph_artifacts(
         "vessel-hold",
         tmp_path / "b",
         prefix=prefix,
@@ -59,7 +53,7 @@ def test_export_json_is_deterministic(tmp_path: Path) -> None:
 def test_html_contains_hold_path_and_disclaimer(tmp_path: Path) -> None:
     graph = build_maritime_cyber_graph(["vessel-hold"])
     eval_result = evaluate_port_clearance("vessel-hold", graph_result=graph)
-    written = write_vessel_graph_artifacts(
+    written = evg.write_vessel_graph_artifacts(
         "vessel-hold",
         tmp_path,
         prefix="vessel-hold_pc",
@@ -76,7 +70,7 @@ def test_html_contains_hold_path_and_disclaimer(tmp_path: Path) -> None:
 def test_paths_match_facts_impacted_paths() -> None:
     graph = build_maritime_cyber_graph(["vessel-hold"])
     eval_result = evaluate_port_clearance("vessel-hold", graph_result=graph)
-    built = build_impacted_paths("vessel-hold", graph_result=graph)
+    built = evg.build_impacted_paths("vessel-hold", graph_result=graph)
     assert built == eval_result.facts["impacted_paths"]
 
 
@@ -99,8 +93,8 @@ def test_run_clearance_writes_graph_exports(tmp_path: Path) -> None:
 
 
 def test_render_pass_vessel_empty_paths() -> None:
-    doc = export_impacted_paths_document("vessel-clean", [], outcome="pass")
-    html = render_impacted_paths_html(doc)
+    doc = evg.export_impacted_paths_document("vessel-clean", [], outcome="pass")
+    html = evg.render_impacted_paths_html(doc)
     assert "No impacted vulnerability paths" in html
 
 
@@ -109,7 +103,7 @@ def test_copy_impacted_path_html_writes_bundle(tmp_path: Path) -> None:
     dest_dir = tmp_path / "bundle"
     src.write_text("<p>hold path</p>", encoding="utf-8")
 
-    copied = _copy_impacted_path_html(src, "vessel-hold", dest_dir)
+    copied = evg._copy_impacted_path_html(src, "vessel-hold", dest_dir)
 
     assert copied == dest_dir / "vessel-hold_impacted-path.html"
     assert copied is not None
@@ -121,20 +115,18 @@ def test_copy_impacted_path_html_skips_missing_parent(tmp_path: Path) -> None:
     src.write_text("<p>x</p>", encoding="utf-8")
     dest_dir = tmp_path / "no_such_parent" / "bundle"
 
-    assert _copy_impacted_path_html(src, "vessel-hold", dest_dir) is None
+    assert evg._copy_impacted_path_html(src, "vessel-hold", dest_dir) is None
 
 
 def test_write_vessel_graph_artifacts_copy_to_documaris_dist(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    import pipelines.export_vessel_graph as evg
-
     bundle = tmp_path / "documaris-dist"
     monkeypatch.setattr(evg, "_DOCUMARIS_DIST", bundle)
 
     graph = build_maritime_cyber_graph(["vessel-hold"])
     eval_result = evaluate_port_clearance("vessel-hold", graph_result=graph)
-    written = write_vessel_graph_artifacts(
+    written = evg.write_vessel_graph_artifacts(
         "vessel-hold",
         tmp_path / "out",
         prefix="vessel-hold_pc",
@@ -150,14 +142,12 @@ def test_write_vessel_graph_artifacts_copy_to_documaris_dist(
 def test_write_vessel_graph_artifacts_copy_to_capvista_submission(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    import pipelines.export_vessel_graph as evg
-
     bundle = tmp_path / "capvista-artefacts"
     monkeypatch.setattr(evg, "_CAPVISTA_SUBMISSION_ARTEFACTS", bundle)
 
     graph = build_maritime_cyber_graph(["vessel-hold"])
     eval_result = evaluate_port_clearance("vessel-hold", graph_result=graph)
-    written = write_vessel_graph_artifacts(
+    written = evg.write_vessel_graph_artifacts(
         "vessel-hold",
         tmp_path / "out",
         prefix="vessel-hold_pc",
