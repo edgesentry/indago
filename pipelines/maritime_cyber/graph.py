@@ -11,7 +11,6 @@ from typing import Any
 
 import networkx as nx
 import polars as pl
-import yaml
 
 from pipelines.maritime_cyber.rules import load_asset_map
 
