@@ -36,6 +36,16 @@ This matches [maritime-cyber-governance-use-cases.md](https://github.com/edgesen
 | `vessel-clean` | **pass** | No rule triggers on current snapshot |
 | `vessel-thread` | **pass** | Clean SBOM + signed yard `ProcessLog` for UC3 timeline slide |
 
+## Fleet-demo pack (W8)
+
+Demo-enhanced tier (**12 vessels**, multi-asset): `fleet-demo/` — see [fleet-demo/README.md](fleet-demo/README.md).
+
+```bash
+uv run python scripts/generate_maritime_cyber_fixtures.py --seed 42 --verify
+```
+
+Profile: `profiles/maritime_cyber/fleet-demo-manifest.yaml`
+
 ## Profile and rules
 
 - Profile manifest: `profiles/maritime_cyber/manifest.yaml`

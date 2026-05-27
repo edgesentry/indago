@@ -1,0 +1,110 @@
+{
+  "asset_map": "asset_map.yaml",
+  "assets_per_vessel": 6,
+  "components_per_vessel": 25,
+  "cve_snapshot": "cve/snapshot-fleet-demo.json",
+  "generator_seed": 42,
+  "graph_edge_count": 492,
+  "graph_node_count": 360,
+  "sbom_dir": "sbom",
+  "tier": "demo-enhanced",
+  "vessel_count": 12,
+  "vessels": [
+    {
+      "actual_outcome": "pass",
+      "decision_hash": "1472d6e332030d302acf4ceb9fb85a6326e352b48c48f76b4346f97f75242b5a",
+      "expected_outcome": "pass",
+      "hold_pattern": "pass",
+      "rules_fired_count": 0,
+      "vessel_key": "fleet-pass-02"
+    },
+    {
+      "actual_outcome": "hold",
+      "decision_hash": "0d9e8d60fa232a642cba499f4b1142d9c729fccda2bc3d97d0ec3c871135a576",
+      "expected_outcome": "hold",
+      "hold_pattern": "asset_map_missing_zone",
+      "rules_fired_count": 4,
+      "vessel_key": "fleet-hold-06"
+    },
+    {
+      "actual_outcome": "hold",
+      "decision_hash": "6908bfc9e2688abb5145c049819399ce1f37e9ae998f665172220bd33ebc940f",
+      "expected_outcome": "hold",
+      "hold_pattern": "log4j_navigation_ecdis",
+      "rules_fired_count": 3,
+      "vessel_key": "fleet-hold-03"
+    },
+    {
+      "actual_outcome": "pass",
+      "decision_hash": "cc41fac66778e44ecdcef67b014d36e14fce6e435218d050b003c462eadda32c",
+      "expected_outcome": "pass",
+      "hold_pattern": "pass",
+      "rules_fired_count": 0,
+      "vessel_key": "fleet-pass-03"
+    },
+    {
+      "actual_outcome": "pass",
+      "decision_hash": "edab902ef7ac63d60414735163601c8fa0350f0a49a8e7f6b3b2ff565ad773fa",
+      "expected_outcome": "pass",
+      "hold_pattern": "pass",
+      "rules_fired_count": 0,
+      "vessel_key": "fleet-pass-04"
+    },
+    {
+      "actual_outcome": "pass",
+      "decision_hash": "101b011b3bc86213f1281554a6dc1691790746ead86a26676ab30ac85221a9fa",
+      "expected_outcome": "pass",
+      "hold_pattern": "pass",
+      "rules_fired_count": 0,
+      "vessel_key": "fleet-pass-01"
+    },
+    {
+      "actual_outcome": "pass",
+      "decision_hash": "f4498ad1bb00b3313f319140ba7a9e118ca22908ae5630c4e62a89e9a49a4a5a",
+      "expected_outcome": "pass",
+      "hold_pattern": "pass",
+      "rules_fired_count": 0,
+      "vessel_key": "fleet-pass-06"
+    },
+    {
+      "actual_outcome": "hold",
+      "decision_hash": "13c68480266272079e71c877211fe748f2db8c5233c80cdb111269a73afebe52",
+      "expected_outcome": "hold",
+      "hold_pattern": "log4j_navigation_ecdis",
+      "rules_fired_count": 3,
+      "vessel_key": "fleet-hold-04"
+    },
+    {
+      "actual_outcome": "hold",
+      "decision_hash": "aa466401a6c90c34d5a9a7a8d7c04d097f4196d1575488e01c8fa283cf31904e",
+      "expected_outcome": "hold",
+      "hold_pattern": "sbom_missing_supplier",
+      "rules_fired_count": 4,
+      "vessel_key": "fleet-hold-05"
+    },
+    {
+      "actual_outcome": "hold",
+      "decision_hash": "283a5149fdbbc4a9910931f0e24fb64f97c5ba050589f187863ca398e17ecef4",
+      "expected_outcome": "hold",
+      "hold_pattern": "log4j_navigation_ecdis",
+      "rules_fired_count": 3,
+      "vessel_key": "fleet-hold-01"
+    },
+    {
+      "actual_outcome": "hold",
+      "decision_hash": "945ffd1544f8156e30271601531103b827cf76f5900c7e2dab2961b0f279b92a",
+      "expected_outcome": "hold",
+      "hold_pattern": "log4j_navigation_ecdis",
+      "rules_fired_count": 3,
+      "vessel_key": "fleet-hold-02"
+    },
+    {
+      "actual_outcome": "pass",
+      "decision_hash": "e674dc925f6fb3a31da105429a931ce2a300661385afc1c610eee82ab5af87bb",
+      "expected_outcome": "pass",
+      "hold_pattern": "pass",
+      "rules_fired_count": 0,
+      "vessel_key": "fleet-pass-05"
+    }
+  ]
+}

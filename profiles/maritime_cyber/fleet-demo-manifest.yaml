@@ -1,0 +1,32 @@
+# Demo-enhanced fleet profile — W8 (#196)
+# Generate fixtures: uv run python scripts/generate_maritime_cyber_fixtures.py --verify
+
+version: "0.1.0"
+profile_id: maritime_cyber_fleet_demo
+display_name: Maritime Cyber — Fleet demo (10–20 vessels)
+
+ontology:
+  file: ontology.yaml
+  version: "0.1.0"
+
+rule_pack:
+  file: ../../rules/sg-cyber-clearance-v0.yaml
+  version: "0.1.0"
+
+fixtures:
+  asset_map: ../../fixtures/fleet-demo/asset_map.yaml
+  sbom_dir: ../../fixtures/fleet-demo/sbom
+  cve_dir: ../../fixtures/fleet-demo/cve
+  port_calls_dir: ../../fixtures/port_calls
+  process_logs_dir: ../../fixtures/process_logs
+
+pipelines:
+  graph: maritime_cyber_graph
+  evaluate: port_clearance_eval
+
+outputs:
+  parquet_dir: data/processed/maritime_cyber/fleet-demo
+
+disclosure: >
+  Demo-enhanced tier uses seeded synthetic fleet fixtures (fixtures/fleet-demo/).
+  PoC three-vessel pack under fixtures/ remains unchanged for Cap Vista G1–G7 regression.
