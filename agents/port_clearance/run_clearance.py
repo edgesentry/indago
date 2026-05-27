@@ -33,6 +33,7 @@ from pipelines.maritime_cyber.graph import (
 )
 
 from agents.port_clearance.worm_store import publish_clearance_run  # noqa: E402
+from pipelines.export_vessel_graph import write_vessel_graph_artifacts  # noqa: E402
 
 _REPO_ROOT = Path(__file__).resolve().parents[2]
 _PROFILE_MANIFEST = _REPO_ROOT / "profiles" / "maritime_cyber" / "manifest.yaml"
@@ -56,6 +57,8 @@ class ClearanceRunResult:
     chain_path: Path | None
     verify_url: str
     worm_publish_path: Path | None
+    impacted_paths_json: Path | None
+    impacted_path_html: Path | None
 
 
 def load_profile_manifest(path: Path | None = None) -> dict[str, Any]:
@@ -175,6 +178,8 @@ def run_clearance(
     skip_seal: bool = False,
     skip_worm: bool = False,
     worm_root: Path | None = None,
+    skip_graph_export: bool = False,
+    copy_graph_to_documaris: bool = False,
     prior_decision_hash: str | None = None,
     lifecycle_event: str | None = None,
 ) -> ClearanceRunResult:
@@ -292,6 +297,27 @@ def run_clearance(
     if prior_decision_hash:
         summary["prior_decision_hash"] = prior_decision_hash
 
+    impacted_paths_json: Path | None = None
+    impacted_path_html: Path | None = None
+    if not skip_graph_export:
+        graph_exports = write_vessel_graph_artifacts(
+            vessel_key,
+            out,
+            prefix=prefix,
+            impacted_paths=eval_result.facts["impacted_paths"],
+            port_call_id=port_call_id,
+            outcome=eval_result.outcome,
+            graph_result=graph_result,
+            asset_map_path=asset_map_path,
+            cve_snapshot_path=cve_snapshot_path,
+            sbom_dir=sbom_dir,
+            copy_to_documaris_dist=copy_graph_to_documaris,
+        )
+        impacted_paths_json = graph_exports["json"]
+        impacted_path_html = graph_exports["html"]
+        summary["impacted_paths_json"] = str(impacted_paths_json)
+        summary["impacted_path_html"] = str(impacted_path_html)
+
     worm_publish_path: Path | None = None
     if not skip_worm:
         worm_record = publish_clearance_run(
@@ -324,6 +350,8 @@ def run_clearance(
         chain_path=chain_path,
         verify_url=url,
         worm_publish_path=worm_publish_path,
+        impacted_paths_json=impacted_paths_json,
+        impacted_path_html=impacted_path_html,
     )
 
 
@@ -370,6 +398,8 @@ def run_hold_to_pass_scenario(
     skip_seal: bool = False,
     skip_worm: bool = False,
     worm_root: Path | None = None,
+    skip_graph_export: bool = False,
+    copy_graph_to_documaris: bool = False,
 ) -> dict[str, Any]:
     """D1: E7 -> E9 -> E10 -> re-E7 — hold, domino query, remediation, pass."""
     if vessel_key != "vessel-hold":
@@ -397,6 +427,8 @@ def run_hold_to_pass_scenario(
         skip_seal=skip_seal,
         skip_worm=skip_worm,
         worm_root=worm_root,
+        skip_graph_export=skip_graph_export,
+        copy_graph_to_documaris=copy_graph_to_documaris,
         lifecycle_event="E7",
     )
 
@@ -445,6 +477,8 @@ def run_hold_to_pass_scenario(
         skip_seal=skip_seal,
         skip_worm=skip_worm,
         worm_root=worm_root,
+        skip_graph_export=skip_graph_export,
+        copy_graph_to_documaris=copy_graph_to_documaris,
         prior_decision_hash=baseline.decision_hash,
         lifecycle_event="E7",
     )
@@ -570,6 +604,16 @@ def main(argv: list[str] | None = None) -> int:
         type=Path,
         help="Mock WORM store root (default: CLEARANCE_WORM_ROOT or data/processed/.../worm_store/clearance)",
     )
+    parser.add_argument(
+        "--skip-graph-export",
+        action="store_true",
+        help="Skip D4 impacted-path JSON/HTML export",
+    )
+    parser.add_argument(
+        "--copy-graph-to-documaris",
+        action="store_true",
+        help="Also write documaris/dist/<vessel>_impacted-path.html",
+    )
     parser.add_argument("--json", action="store_true", help="Print run summary JSON to stdout")
     args = parser.parse_args(argv)
 
@@ -600,6 +644,8 @@ def main(argv: list[str] | None = None) -> int:
                 skip_seal=args.skip_seal,
                 skip_worm=args.skip_worm,
                 worm_root=args.worm_root,
+                skip_graph_export=args.skip_graph_export,
+                copy_graph_to_documaris=args.copy_graph_to_documaris,
             )
         except (FileNotFoundError, RuntimeError, ValueError) as exc:
             print(f"error: {exc}", file=sys.stderr)
@@ -648,6 +694,8 @@ def main(argv: list[str] | None = None) -> int:
             skip_seal=args.skip_seal,
             skip_worm=args.skip_worm,
             worm_root=args.worm_root,
+            skip_graph_export=args.skip_graph_export,
+            copy_graph_to_documaris=args.copy_graph_to_documaris,
         )
     except (FileNotFoundError, RuntimeError) as exc:
         print(f"error: {exc}", file=sys.stderr)
@@ -678,6 +726,8 @@ def main(argv: list[str] | None = None) -> int:
             print(f"chain: {result.chain_path}")
         if result.worm_publish_path:
             print(f"worm_publish: {result.worm_publish_path}")
+        if result.impacted_path_html:
+            print(f"impacted_path_html: {result.impacted_path_html}")
 
     try:
         eds = None if args.skip_seal else find_eds_binary(args.eds_bin)

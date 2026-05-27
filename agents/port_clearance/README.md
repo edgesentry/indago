@@ -1,5 +1,14 @@
 # Port Cyber Clearance — E2E orchestrator (W6)
 
+**Program status:** [docs/ref-maritime-cyber-capvista.md](../../docs/ref-maritime-cyber-capvista.md) — indago **W0–W6** and demo **D1–D4** done; **W7** submission is in `edgesentry-commercial`.
+
+| Workstream | Status | This package |
+|------------|--------|--------------|
+| W6 E2E | Done | `run_clearance.py` |
+| D1 lifecycle | Done | `--scenario hold-to-pass` |
+| D3 mock WORM | Done | `worm_store.py`, `verify_retention.py` |
+| D4 path viz | Done | calls `pipelines/export_vessel_graph` |
+
 One command runs the Cap Vista UC1 demo path:
 
 1. Load `profiles/maritime_cyber/manifest.yaml`
@@ -8,7 +17,8 @@ One command runs the Cap Vista UC1 demo path:
 4. Render certificate HTML (`eds document render-clearance`)
 5. Seal audit chain (`eds audit sign-clearance`)
 6. Publish artefacts to **mock WORM** store (G11 — append-only, content-addressed)
-7. Print third-party verify instructions
+7. Export **impacted vulnerability paths** (D4 — JSON + self-contained HTML)
+8. Print third-party verify instructions
 
 ## Prerequisites
 
@@ -43,6 +53,15 @@ uv run python -m agents.port_clearance.run_clearance vessel-hold --skip-render -
 # Skip immutable publish (G11 demo off)
 uv run python -m agents.port_clearance.run_clearance vessel-hold --skip-worm
 
+# Skip impacted-path export (D4)
+uv run python -m agents.port_clearance.run_clearance vessel-hold --skip-graph-export
+
+# Copy impacted-path HTML to documaris/dist (D4 demo bundle)
+uv run python -m agents.port_clearance.run_clearance vessel-hold --copy-graph-to-documaris
+
+# D4 only (standalone export + optional documaris/dist copy)
+uv run python -m pipelines.export_vessel_graph vessel-hold --copy-to-documaris-dist
+
 # Machine-readable summary
 uv run python -m agents.port_clearance.run_clearance vessel-hold --json
 ```
@@ -73,8 +92,31 @@ Steps performed: fetch each WORM object → verify SHA-256 → `assert_manifest_
 
 Production pilots may set `CLEARANCE_WORM_URI` (future); **Cap Vista PoC does not require R2 upload**.
 
+## Impacted path visualization (D4)
+
+Each clearance run writes (unless `--skip-graph-export`):
+
+- `<prefix>_impacted_paths.json` — same `impacted_paths[]` as evaluation facts
+- `<prefix>_impacted-path.html` — Component → CVE → Asset → Vessel table + chain blocks
+
+Copy to documaris demo bundle: `--copy-graph-to-documaris` → `documaris/dist/<vessel>_impacted-path.html`
+
+## Run outputs (typical prefix `vessel-hold_port-call-demo-sgsin`)
+
+| Artefact | Workstream |
+|----------|------------|
+| `*_facts.json`, `*_evaluation_manifest.json` | W3 |
+| `*_integrated_snapshot.json` | D2 |
+| `*_port-cyber-clearance.html` | W5 (via `eds`) |
+| `*_clearance_chain.json` | W4 |
+| `*_worm_publish.json` | D3 |
+| `*_impacted_paths.json`, `*_impacted-path.html` | D4 |
+| `*_run_summary.json` | W6 |
+
 ## Related
 
+- Program map: [docs/ref-maritime-cyber-capvista.md](../../docs/ref-maritime-cyber-capvista.md)
 - W3: `pipelines/port_clearance_eval.py`
 - W4: `edgesentry-rs/docs/port-cyber-clearance-audit.md`
 - W5: `documaris/dist/*_port-cyber-clearance.html`
+- Tests: `tests/maritime_cyber/README.md`

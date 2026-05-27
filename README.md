@@ -46,11 +46,20 @@ See [`docs/ref-r2-buckets.md`](docs/ref-r2-buckets.md) for full partition layout
 
 Analyst metrics (Precision@50, Recall, pre-designation lead time, SHAP scores) are displayed at **[arktrace.edgesentry.io](https://arktrace.edgesentry.io)**.
 
+## Port Cyber Clearance (Cap Vista 6/30)
+
+Deterministic port cyber clearance on synthetic SBOM/CVE fixtures — separate from the 11-step shadow-fleet pipeline.
+
+- **Status:** indago **W0–W6** + demo **D1–D4** complete; submission **W7** in [edgesentry-commercial](https://github.com/edgesentry/edgesentry-commercial/tree/main/docs/programs/20260630-capvista-products/analysis)
+- **Guide:** [docs/ref-maritime-cyber-capvista.md](docs/ref-maritime-cyber-capvista.md)
+- **Run:** `uv run python -m agents.port_clearance.run_clearance vessel-hold`
+
 ## Repository layout
 
 ```
 indago/
   .agents/skills/      # agent skills (npx skills add edgesentry/indago)
+  agents/port_clearance/  # Cap Vista E2E (W6, D1, D3, D4)
   dashboard/           # maintainer pipeline ops dashboard
   docs/                # reference material (ref-*.md)
   pipelines/           # ingest and transformation pipeline implementations
