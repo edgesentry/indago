@@ -2,8 +2,6 @@
 
 from pathlib import Path
 
-import pytest
-
 from pipelines.maritime_cyber.rules import (
     KNOWN_REQUIREMENT_IDS,
     load_asset_map,
