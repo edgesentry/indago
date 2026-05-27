@@ -37,6 +37,7 @@ Multi-domain OSINT data layer. indago ingests raw signals from maritime, corpora
 | `pipelines/maritime_cyber_graph.py` | CLI — build graph Parquet under `data/processed/maritime_cyber/` |
 | `pipelines/port_clearance_eval.py` | CLI — pass/hold eval + UC2 `affected-vessels` |
 | `pipelines/maritime_cyber/eval.py` | Rule engine, facts.json, decision_hash (W3) |
+| `agents/port_clearance/run_clearance.py` | W6 E2E — graph → eval → HTML → audit seal + verify instructions |
 | `config/geopolitical_events.json` | Geopolitical filter zones |
 
 ## R2 buckets

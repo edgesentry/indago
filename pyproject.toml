@@ -35,7 +35,7 @@ test = [
 ]
 
 [tool.hatch.build.targets.wheel]
-packages = ["pipelines", "scripts"]
+packages = ["pipelines", "scripts", "agents"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
