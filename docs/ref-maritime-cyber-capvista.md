@@ -133,9 +133,9 @@ See [lifecycle-events.md](https://github.com/edgesentry/edgesentry-commercial/bl
 
 | Doc | Repo |
 |-----|------|
-| [agents/port_clearance/README.md](../agents/port_clearance/README.md) | indago — operator commands |
-| [fixtures/README.md](../fixtures/README.md) | indago — W1 fixtures |
-| [profiles/maritime_cyber/README.md](../profiles/maritime_cyber/README.md) | indago — profile entry |
+| [agents/port_clearance/README.md](https://github.com/edgesentry/indago/blob/main/agents/port_clearance/README.md) | indago — operator commands |
+| [fixtures/README.md](https://github.com/edgesentry/indago/blob/main/fixtures/README.md) | indago — W1 fixtures |
+| [profiles/maritime_cyber/README.md](https://github.com/edgesentry/indago/blob/main/profiles/maritime_cyber/README.md) | indago — profile entry |
 | [implementation-plan.md](https://github.com/edgesentry/edgesentry-commercial/blob/main/docs/programs/20260630-capvista-products/analysis/implementation-plan.md) | commercial |
 | [completed-tasks.md](https://github.com/edgesentry/edgesentry-commercial/blob/main/docs/programs/20260630-capvista-products/analysis/completed-tasks.md) | commercial |
 | [VALIDATION.md](https://github.com/edgesentry/edgesentry-commercial/blob/main/docs/programs/20260630-capvista-products/analysis/VALIDATION.md) | commercial — G11 WORM policy |
