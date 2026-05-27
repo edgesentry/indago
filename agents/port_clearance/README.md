@@ -8,7 +8,8 @@ One command runs the Cap Vista UC1 demo path:
 4. Render certificate HTML (`eds document render-clearance`)
 5. Seal audit chain (`eds audit sign-clearance`)
 6. Publish artefacts to **mock WORM** store (G11 — append-only, content-addressed)
-7. Print third-party verify instructions
+7. Export **impacted vulnerability paths** (D4 — JSON + self-contained HTML)
+8. Print third-party verify instructions
 
 ## Prerequisites
 
@@ -43,6 +44,9 @@ uv run python -m agents.port_clearance.run_clearance vessel-hold --skip-render -
 # Skip immutable publish (G11 demo off)
 uv run python -m agents.port_clearance.run_clearance vessel-hold --skip-worm
 
+# D4 only (standalone export + optional documaris/dist copy)
+uv run python -m pipelines.export_vessel_graph vessel-hold --copy-to-documaris-dist
+
 # Machine-readable summary
 uv run python -m agents.port_clearance.run_clearance vessel-hold --json
 ```
@@ -72,6 +76,15 @@ uv run python -m agents.port_clearance.verify_retention \
 Steps performed: fetch each WORM object → verify SHA-256 → `assert_manifest_audit_refs` on stored manifest.
 
 Production pilots may set `CLEARANCE_WORM_URI` (future); **Cap Vista PoC does not require R2 upload**.
+
+## Impacted path visualization (D4)
+
+Each clearance run writes (unless `--skip-graph-export`):
+
+- `<prefix>_impacted_paths.json` — same `impacted_paths[]` as evaluation facts
+- `<prefix>_impacted-path.html` — Component → CVE → Asset → Vessel table + chain blocks
+
+Copy to documaris demo bundle: `--copy-graph-to-documaris` → `documaris/dist/<vessel>_impacted-path.html`
 
 ## Related
 
