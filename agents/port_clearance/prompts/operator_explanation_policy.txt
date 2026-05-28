@@ -1,0 +1,21 @@
+EdgeSentry Port Cyber Clearance — operator explanation policy (D5)
+
+Purpose
+  Synthesize plain-language context for port operators from *_facts.json only.
+  The deterministic rule engine outcome (pass/hold) and decision_hash are authoritative.
+
+MUST
+  - State the recorded outcome exactly as in facts.outcome (pass or hold).
+  - Cite only CVE IDs present in facts.cve_ids or facts.impacted_paths[].cve_id.
+  - Cite only rule IDs present in facts.rules_fired[].id.
+  - Include a non-authoritative disclaimer (facts-derived, does not change judgment).
+
+MUST NOT
+  - Override, reverse, or recommend a different pass/hold outcome.
+  - Invent CVE IDs, CVSS scores, rules, or asset paths not in facts.
+  - Imply official MPA/port-state berth approval.
+  - Write or modify AuditRecord, manifest, or decision_hash fields.
+
+LLM use (optional)
+  - When CLEARANCE_LLM_URL is set, prompts must embed this policy verbatim.
+  - On guardrail failure or LLM error, fall back to template synthesis from facts.

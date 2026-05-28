@@ -36,7 +36,7 @@ Runnable demo before deck/video; all implemented in indago unless noted.
 | **D3** | Mock WORM publish + third-party retention verify | **Done** | `agents/port_clearance/worm_store.py` · `verify_retention.py` · [indago#193](https://github.com/edgesentry/indago/pull/193) |
 | **D4** | Impacted-path JSON + HTML (explainability) | **Done** | `pipelines/export_vessel_graph.py` · wired in `run_clearance` · [indago#194](https://github.com/edgesentry/indago/pull/194) |
 | **D4-3** | Deck frame from generated HTML | **Open** | [commercial#163](https://github.com/edgesentry/edgesentry-commercial/issues/163) (W7) |
-| **D5** | Optional AI narrative (facts in, no pass/hold out) | **Open** | documaris + prompt guardrails |
+| **D5** | Optional AI narrative (facts in, no pass/hold out) | **Done** | `agents/port_clearance/ai_narrative.py`, `--ai-narrative`; eds `render-clearance --operator-explanation` |
 
 ---
 

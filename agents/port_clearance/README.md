@@ -8,6 +8,7 @@
 | D1 lifecycle | Done | `--scenario hold-to-pass` |
 | D3 mock WORM | Done | `worm_store.py`, `verify_retention.py` |
 | D4 path viz | Done | calls `pipelines/export_vessel_graph` |
+| D5 AI narrative | Done | `--ai-narrative`, `ai_narrative.py`, `prompts/operator_explanation_policy.txt` |
 
 One command runs the Cap Vista UC1 demo path:
 
@@ -18,7 +19,8 @@ One command runs the Cap Vista UC1 demo path:
 5. Seal audit chain (`eds audit sign-clearance`)
 6. Publish artefacts to **mock WORM** store (G11 — append-only, content-addressed)
 7. Export **impacted vulnerability paths** (D4 — JSON + self-contained HTML)
-8. Print third-party verify instructions
+8. Optional **operator explanation** (D5 — facts-derived, guardrailed; certificate section 1a)
+9. Print third-party verify instructions
 
 ## Prerequisites
 
@@ -64,6 +66,13 @@ uv run python -m agents.port_clearance.run_clearance vessel-hold --copy-graph-to
 uv run python -m pipelines.export_vessel_graph vessel-hold \
   --copy-to-documaris-dist \
   --copy-to-capvista-submission
+
+# D5: operator explanation on certificate (does not change decision_hash)
+uv run python -m agents.port_clearance.run_clearance vessel-hold --ai-narrative
+
+# Standalone narrative from facts
+uv run python -m agents.port_clearance.generate_narrative \
+  data/processed/maritime_cyber/clearance_runs/vessel-hold/vessel-hold_facts.json --write
 
 # Machine-readable summary
 uv run python -m agents.port_clearance.run_clearance vessel-hold --json
@@ -114,6 +123,7 @@ Copy to documaris demo bundle: `--copy-graph-to-documaris` → `documaris/dist/<
 | `*_clearance_chain.json` | W4 |
 | `*_worm_publish.json` | D3 |
 | `*_impacted_paths.json`, `*_impacted-path.html` | D4 |
+| `*_operator_explanation.txt`, `*_operator_explanation_meta.json` | D5 (with `--ai-narrative`) |
 | `*_run_summary.json` | W6 |
 
 ## Related

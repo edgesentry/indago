@@ -32,6 +32,7 @@ from pipelines.maritime_cyber.graph import (
     write_graph_parquet,
 )
 
+from agents.port_clearance.ai_narrative import write_operator_explanation_artifacts  # noqa: E402
 from agents.port_clearance.worm_store import publish_clearance_run  # noqa: E402
 from pipelines.export_vessel_graph import write_vessel_graph_artifacts  # noqa: E402
 
@@ -59,6 +60,7 @@ class ClearanceRunResult:
     worm_publish_path: Path | None
     impacted_paths_json: Path | None
     impacted_path_html: Path | None
+    operator_explanation_path: Path | None
 
 
 def load_profile_manifest(path: Path | None = None) -> dict[str, Any]:
@@ -181,6 +183,7 @@ def run_clearance(
     skip_graph_export: bool = False,
     copy_graph_to_documaris: bool = False,
     copy_graph_to_capvista_submission: bool = False,
+    ai_narrative: bool = False,
     prior_decision_hash: str | None = None,
     lifecycle_event: str | None = None,
 ) -> ClearanceRunResult:
@@ -227,20 +230,29 @@ def run_clearance(
     if not skip_render or not skip_seal:
         eds = find_eds_binary(str(eds_bin) if eds_bin else None)
 
-    if not skip_render and html_path is not None and eds is not None:
-        render = _run_eds(
-            [
-                "document",
-                "render-clearance",
-                "--facts",
-                str(facts_path),
-                "--verify-url",
-                url,
-                "--out",
-                str(html_path),
-            ],
-            eds,
+    operator_explanation_path: Path | None = None
+    if ai_narrative:
+        narrative_paths = write_operator_explanation_artifacts(
+            facts_path,
+            prefix=prefix,
+            output_dir=out,
         )
+        operator_explanation_path = narrative_paths["text"]
+
+    if not skip_render and html_path is not None and eds is not None:
+        render_args = [
+            "document",
+            "render-clearance",
+            "--facts",
+            str(facts_path),
+            "--verify-url",
+            url,
+            "--out",
+            str(html_path),
+        ]
+        if operator_explanation_path is not None:
+            render_args.extend(["--operator-explanation", str(operator_explanation_path)])
+        render = _run_eds(render_args, eds)
         if render.returncode != 0:
             raise RuntimeError(f"eds document render-clearance failed:\n{render.stderr}")
 
@@ -319,6 +331,8 @@ def run_clearance(
         impacted_path_html = graph_exports["html"]
         summary["impacted_paths_json"] = str(impacted_paths_json)
         summary["impacted_path_html"] = str(impacted_path_html)
+    if operator_explanation_path is not None:
+        summary["operator_explanation"] = str(operator_explanation_path)
 
     worm_publish_path: Path | None = None
     if not skip_worm:
@@ -354,6 +368,7 @@ def run_clearance(
         worm_publish_path=worm_publish_path,
         impacted_paths_json=impacted_paths_json,
         impacted_path_html=impacted_path_html,
+        operator_explanation_path=operator_explanation_path,
     )
 
 
@@ -403,6 +418,7 @@ def run_hold_to_pass_scenario(
     skip_graph_export: bool = False,
     copy_graph_to_documaris: bool = False,
     copy_graph_to_capvista_submission: bool = False,
+    ai_narrative: bool = False,
 ) -> dict[str, Any]:
     """D1: E7 -> E9 -> E10 -> re-E7 — hold, domino query, remediation, pass."""
     if vessel_key != "vessel-hold":
@@ -433,6 +449,7 @@ def run_hold_to_pass_scenario(
         skip_graph_export=skip_graph_export,
         copy_graph_to_documaris=copy_graph_to_documaris,
         copy_graph_to_capvista_submission=copy_graph_to_capvista_submission,
+        ai_narrative=ai_narrative,
         lifecycle_event="E7",
     )
 
@@ -484,6 +501,7 @@ def run_hold_to_pass_scenario(
         skip_graph_export=skip_graph_export,
         copy_graph_to_documaris=copy_graph_to_documaris,
         copy_graph_to_capvista_submission=copy_graph_to_capvista_submission,
+        ai_narrative=ai_narrative,
         prior_decision_hash=baseline.decision_hash,
         lifecycle_event="E7",
     )
@@ -624,6 +642,11 @@ def main(argv: list[str] | None = None) -> int:
         action="store_true",
         help="Also write edgesentry-commercial/.../submission/artefacts/<vessel>_impacted-path.html",
     )
+    parser.add_argument(
+        "--ai-narrative",
+        action="store_true",
+        help="D5: add facts-derived operator explanation to certificate (non-authoritative)",
+    )
     parser.add_argument("--json", action="store_true", help="Print run summary JSON to stdout")
     args = parser.parse_args(argv)
 
@@ -657,6 +680,7 @@ def main(argv: list[str] | None = None) -> int:
                 skip_graph_export=args.skip_graph_export,
                 copy_graph_to_documaris=args.copy_graph_to_documaris,
                 copy_graph_to_capvista_submission=args.copy_graph_to_capvista_submission,
+                ai_narrative=args.ai_narrative,
             )
         except (FileNotFoundError, RuntimeError, ValueError) as exc:
             print(f"error: {exc}", file=sys.stderr)
@@ -708,6 +732,7 @@ def main(argv: list[str] | None = None) -> int:
             skip_graph_export=args.skip_graph_export,
             copy_graph_to_documaris=args.copy_graph_to_documaris,
             copy_graph_to_capvista_submission=args.copy_graph_to_capvista_submission,
+            ai_narrative=args.ai_narrative,
         )
     except (FileNotFoundError, RuntimeError) as exc:
         print(f"error: {exc}", file=sys.stderr)
