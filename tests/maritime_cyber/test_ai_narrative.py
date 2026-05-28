@@ -14,17 +14,21 @@ from agents.port_clearance.ai_narrative import (
     validate_narrative_guardrails,
     write_operator_explanation_artifacts,
 )
-
-_REPO_ROOT = Path(__file__).resolve().parents[2]
-_HOLD_FACTS = (
-    _REPO_ROOT.parent
-    / "edgesentry-rs/crates/edgesentry-document/fixtures/clearance/vessel-hold_facts.json"
-)
+from pipelines.maritime_cyber.eval import evaluate_port_clearance
+from pipelines.maritime_cyber.graph import build_maritime_cyber_graph
 
 
 @pytest.fixture
 def hold_facts() -> dict:
-    return json.loads(_HOLD_FACTS.read_text(encoding="utf-8"))
+    """PoC vessel-hold facts from indago fixtures (no sibling-repo path)."""
+    graph = build_maritime_cyber_graph(["vessel-hold"])
+    result = evaluate_port_clearance(
+        "vessel-hold",
+        port_call_id="port-call-demo-sgsin",
+        graph_result=graph,
+    )
+    assert result.outcome == "hold"
+    return result.facts
 
 
 def test_build_deterministic_narrative_mentions_hold_and_rules(hold_facts: dict) -> None:
