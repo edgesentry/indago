@@ -35,9 +35,7 @@ Runs daily via GitHub Actions across 5 regions. See [`/indago-run-pipeline`](htt
 
 ## Cap Vista — Port Cyber Clearance (6/30)
 
-- [ref-maritime-cyber-capvista.md](ref-maritime-cyber-capvista.md) — **W0–W7** and **D1–D4** status, commands, tests
-- [agents/port_clearance/README.md](https://github.com/edgesentry/indago/blob/main/agents/port_clearance/README.md) — E2E operator guide (W6)
-- [profiles/maritime_cyber/README.md](https://github.com/edgesentry/indago/blob/main/profiles/maritime_cyber/README.md) — profile manifest
+- [ref-maritime-cyber-capvista.md](ref-maritime-cyber-capvista.md) — **canonical repo: catena**
 
 ## Operations
 

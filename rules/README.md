@@ -1,13 +1,16 @@
 # Compliance rule packs (indago)
 
-Machine-readable rule packs for domain profiles. Each pack maps public regulatory summaries to deterministic `condition` types consumed by evaluation pipelines.
+Machine-readable rule packs for domain profiles. Each pack maps public
+regulatory summaries to deterministic `condition` types consumed by evaluation
+pipelines.
+
+**Port Cyber:** rule pack `sg-cyber-clearance-v0.yaml` moved to
+**[catena/rules/](https://github.com/edgesentry/catena/tree/main/rules)** with the
+pipeline. See [docs/ref-maritime-cyber-capvista.md](../docs/ref-maritime-cyber-capvista.md).
 
 | Pack | Profile | Status |
 |------|---------|--------|
-| [sg-cyber-clearance-v0.yaml](sg-cyber-clearance-v0.yaml) | `maritime_cyber` | **W0 done** — Cap Vista 6/30 PoC |
+| *(none in indago)* | — | Port Cyber rules in **catena** |
 
-**Traceability matrix:** [regulatory-requirements-matrix.md](https://github.com/edgesentry/edgesentry-commercial/blob/main/docs/programs/20260630-capvista-products/analysis/regulatory-requirements-matrix.md)
-
-**Loader:** `pipelines/maritime_cyber/rules.py`
-
-**Program:** [docs/ref-maritime-cyber-capvista.md](../docs/ref-maritime-cyber-capvista.md)
+**Traceability matrix (Cap Vista):**
+[regulatory-requirements-matrix.md](https://github.com/edgesentry/edgesentry-commercial/blob/main/docs/programs/20260630-capvista-products/analysis/regulatory-requirements-matrix.md)
