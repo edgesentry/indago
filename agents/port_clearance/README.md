@@ -1,6 +1,10 @@
 # Port Cyber Clearance — E2E orchestrator (W6)
 
-**Program status:** [docs/ref-maritime-cyber-capvista.md](../../docs/ref-maritime-cyber-capvista.md) — indago **W0–W6** and demo **D1–D4** done; **W7** submission is in `edgesentry-commercial`.
+> **Canonical home:** [edgesentry/catena](https://github.com/edgesentry/catena)
+> (`agents/port_clearance/`). This package is **frozen**; use catena for new work.
+> [catena#1](https://github.com/edgesentry/catena/issues/1).
+
+**Program status:** [docs/ref-maritime-cyber-capvista.md](../../docs/ref-maritime-cyber-capvista.md) — **W7** submission is in `edgesentry-commercial`.
 
 | Workstream | Status | This package |
 |------------|--------|--------------|

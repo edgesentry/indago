@@ -1,5 +1,10 @@
 # `pipelines/maritime_cyber` — graph + evaluation
 
+> **Canonical home:** [edgesentry/catena](https://github.com/edgesentry/catena)
+> (`pipeline/maritime_cyber/`). This tree is **frozen** for Port Cyber; new work
+> and CI target **catena** only. Tracker:
+> [catena#1](https://github.com/edgesentry/catena/issues/1).
+
 | Module | Workstream | Role |
 |--------|------------|------|
 | `graph.py` | **W2** | SBOM + CVE + `asset_map` → NetworkX + Parquet |
