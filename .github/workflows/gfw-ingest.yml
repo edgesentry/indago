@@ -13,8 +13,9 @@ name: GFW EO Ingest
 # is never contended across jobs.
 
 on:
-  schedule:
-    - cron: '0 0 * * 1'  # weekly Monday 00:00 UTC
+  # schedule disabled — re-enable when automated publish is needed
+  # schedule:
+  #   - cron: '0 0 * * 1'  # weekly Monday 00:00 UTC
   workflow_dispatch:
 
 permissions: {}

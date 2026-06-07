@@ -11,8 +11,9 @@ name: Sanctions DB Refresh
 # Schedule: Monday 00:30 UTC — after GFW ingest (00:00), before data-publish (01:00).
 
 on:
-  schedule:
-    - cron: '30 0 * * 1'  # weekly Monday 00:30 UTC
+  # schedule disabled — re-enable when automated publish is needed
+  # schedule:
+  #   - cron: '30 0 * * 1'  # weekly Monday 00:30 UTC
   workflow_dispatch:
 
 permissions: {}

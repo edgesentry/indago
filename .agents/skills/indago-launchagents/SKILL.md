@@ -16,6 +16,8 @@ metadata:
 
 Plist files live in `config/launchagents/`. The `*.local.plist` files contain real credentials and are gitignored — edit them before installing on a new machine.
 
+Templates currently ship with `<key>Disabled</key><true/>` so agents do not auto-start after install. Remove that key from the template (or generated `*.local.plist`) before loading when automated local ingest should run.
+
 ---
 
 ## Install (new machine setup)

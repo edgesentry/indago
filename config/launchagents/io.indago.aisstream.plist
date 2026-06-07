@@ -6,6 +6,10 @@
   <key>Label</key>
   <string>io.indago.aisstream</string>
 
+  <!-- Disabled — re-enable when automated ingest is needed -->
+  <key>Disabled</key>
+  <true/>
+
   <key>ProgramArguments</key>
   <array>
     <string>REPLACE_WITH_UV_BIN</string>
