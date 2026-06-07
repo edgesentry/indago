@@ -1,11 +1,15 @@
 #!/usr/bin/env bash
-# Install or unload the two indago LaunchAgents:
-#   io.indago.aisstream  — AIS stream rotator (max 3 concurrent regions)
-#   io.indago.r2sync     — hourly DuckDB → Parquet → R2 sync
+# Install or unload the indago LaunchAgents:
+#   io.indago.aisstream     — AIS stream rotator (max 3 concurrent regions)
+#   io.indago.r2sync        — hourly DuckDB → Parquet → R2 sync
+#   io.indago.bca-aggregate — daily clarus BCA rollup
+#
+# Templates in config/launchagents/ ship with Disabled=true. Remove that key
+# before loading when automated local ingest should run again.
 #
 # Usage:
-#   bash scripts/install_launchagents.sh           # load both
-#   bash scripts/install_launchagents.sh --unload  # unload both
+#   bash scripts/install_launchagents.sh           # load all (requires Disabled removed)
+#   bash scripts/install_launchagents.sh --unload  # unload all
 
 set -euo pipefail
 
