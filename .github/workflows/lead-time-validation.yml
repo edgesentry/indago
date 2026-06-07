@@ -1,8 +1,9 @@
 name: Lead Time Validation
 
 on:
-  schedule:
-    - cron: '0 1 * * 1'   # 01:00 UTC every Monday (09:00 SGT)
+  # schedule disabled — re-enable when automated publish is needed
+  # schedule:
+  #   - cron: '0 1 * * 1'   # 01:00 UTC every Monday (09:00 SGT)
   workflow_dispatch:
 
 permissions: {}

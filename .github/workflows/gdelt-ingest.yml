@@ -9,8 +9,9 @@ name: GDELT Ingest
 #   - Manual dispatch
 
 on:
-  schedule:
-    - cron: '0 23 * * 0'  # weekly Sunday 23:00 UTC
+  # schedule disabled — re-enable when automated publish is needed
+  # schedule:
+  #   - cron: '0 23 * * 0'  # weekly Sunday 23:00 UTC
   workflow_dispatch:
 
 permissions: {}
